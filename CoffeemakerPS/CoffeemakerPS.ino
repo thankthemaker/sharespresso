@@ -1,15 +1,22 @@
-
 /* 
- Sharespresso by c't/Peter Siering
+ Sharespresso by Thank-The-Maker.org
  
  is an Arduino-based RFID payment system for coffeemakers with toptronic logic unit, as Jura 
  Impressa S95 and others without modifying the coffeemaker itself. 
 
  Based on Oliver Krohns famous Coffeemaker-Payment-System 
  at https://github.com/oliverk71/Coffeemaker-Payment-System
+
+ and 
+
+ Sharespresso by c't/Peter Siering
+ at https://www.heise.de/ct/artikel/Sharespresso-NFC-Bezahlsystem-fuer-Kaffeevollautomaten-3058350.html
  
- Hardware used: Arduino Uno, 16x2 LCD I2C, pn532/mfrc522 rfid card reader (13.56MHz), 
- HC-05 bluetooth, male/female jumper wires (optional: ethernet shield, buzzer, button)
+ Hardware used: 
+  - SparkFun ESP8266 Thing - Dev Board
+  - AZDelivery 3er Set 128 x 64 Pixel 0,96 Zoll OLED Display
+  - pn532/mfrc522 rfid card reader (13.56MHz), 
+  - HC-05 bluetooth, male/female jumper wires (optional: ethernet shield, buzzer, button)
  
  The code is provided 'as is', without any guarantuee. Use at your own risk! 
 */
@@ -17,81 +24,43 @@
 // needed for conditional includes to work, don't ask why ;-)
 char trivialfix;
 
+#include "settings.h"
+
 // options to include into project
-//#define BUZZER 1 // piezo buzzer
-#define BUZPIN 5  // digital pin for buzzer
-//#define SERVICEBUT 8 // button to switch to service mode 
+#define BUZPIN 0  // digital pin for buzzer
 #define BT 1 // bluetooth module
-#define LCD 1 // i2c lcd
 #define SERLOG 1 // logging to serial port
 #define DEBUG 1 // some more logging
-//#define MEMDEBUG 1 // print memory usage 
-//#define RFID 1 // stop on missing rfid reader
-#define NET 1 // include networking
-#define SYSLOG 1 // log to a log host
-#define USE_PN532 1 // pn532 as rfid reader
-//#define USE_MFRC522 1 // mfrc522 as rfid reader
-
 // set your application specific settings here
-#define MASTERCARD 2754927337 // card uid to enter/exit service mode
+#define MASTERCARD 3496110302 // card uid to enter/exit service mode
 // coffemaker model
 //#define X7 1 // x7/saphira
 #define S95 1
-// network configuration
-#if defined(NET)
-byte my_mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x60, 0xC5 }; // replace
-byte my_ip[] = { 192, 168, 26, 6 };
-byte my_gateway[] = { 192, 168, 26, 251 };
-byte my_dns[] = { 192, 168, 26, 5 };
-byte my_subnet[] = { 255, 255, 255, 0 }; // if unusal has to be stet
-#if defined(SYSLOG)
-byte my_loghost[] = { 192, 168, 26, 254 };
-char my_fac[] = "sharespresso";
-String empty="";
-#endif
-#endif
+#define PN532_SS   (2)
+#define PN532_SCK  (14)
+#define PN532_MISO (12)
+#define PN532_MOSI (13)
 
-// include selected libraries
+
+#include <ESP8266WiFi.h>
 #include <Wire.h>
 #include <SoftwareSerial.h>
-#if LCD > 0
-#include <LiquidCrystal_I2C.h>
-#endif
-#include <EEPROMex.h>
+#include "SSD1306Brzo.h" //OLED I2C
+#include <EEPROM.h>
 #include <SPI.h>
-#if USE_PN532 > 0
-#include <PN532_SPI.h> // https://github.com/Seeed-Studio/PN532
-#include <PN532.h>
-#endif
-#if USE_MFRC522 > 0
-#include <MFRC522.h> // https://github.com/miguelbalboa/rfid.git
-#endif
-#if NET > 0
-#include <Ethernet.h>
-#if SYSLOG > 0
-#include <Syslog.h> // https://github.com/tomoconnor/ardusyslog/
-#endif
-#endif
+#include <Adafruit_PN532.h> // NFC Card Reader
+#include <PubSubClient.h>
 
 // hardware specific settings
-#if defined(LCD)
-LiquidCrystal_I2C lcd(0x20,16,2);
-#endif
-SoftwareSerial myCoffeemaker(2,3); // RX, TX
+SSD1306Brzo display(0x3c, 4, 5);
+WiFiClient espClient;
+PubSubClient mqttClient(espClient);
+SoftwareSerial myCoffeemaker(15,16); // RX, TX
 #if defined(BT)
-SoftwareSerial myBT(7,6);
+SoftwareSerial myBT(7,8);
 #endif
-#if defined(USE_PN532)
-#define PN532_SS 9 // select pin for mfrc522
-SPISettings nfc_settings(SPI_CLOCK_DIV8, LSBFIRST, SPI_MODE0);
-PN532_SPI pn532spi(SPI, PN532_SS);
-PN532 nfc(pn532spi);
-#endif
-#if defined(USE_MFRC522)
-#define RST_PIN 8
-#define SS_PIN 9
-MFRC522 mfrc522(SS_PIN, RST_PIN);
-#endif
+
+Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
 
 // product codes send by coffeemakers "?PA<x>\r\n", just <x>
 #if defined(S95)
@@ -105,7 +74,7 @@ char products[] = "ABCHDEKJFG";
 boolean buttonPress = false;
 const int n = 40; // number of cards, max is (1024-11*2)/6=167 on Arduino Uno
 String BTstring=""; // contains what is received via bluetooth (from app or other bt client)
-unsigned long time; // timer for RFID etc
+unsigned long actTime; // timer for RFID etc
 unsigned long buttonTime; // timer for button press 
 boolean override = false;  // to override payment system by the voice-control/button-press app
 unsigned long RFIDcard = 0;
@@ -115,89 +84,61 @@ String last_product="";
 
 void setup()
 {
-#if defined(SERLOG) || defined(DEBUG) || defined(MEMDEBUG)
+#if defined(SERLOG) || defined(DEBUG)
   Serial.begin(9600);
 #endif
 #if defined(DEBUG)
-  EEPROM.setMaxAllowedWrites(100);
-  EEPROM.setMemPool(0, EEPROMSizeUno);
+//  EEPROM.setMaxAllowedWrites(100);
+//  EEPROM.setMemPool(0, EEPROMSizeUno);
   Serial.println(sizeof(products));
 #endif
-#if defined(MEMDEBUG)
-  Serial.println(free_ram());
-#endif
-#if defined(LCD)
-  lcd.init();
-#endif
+  serlog("Initializing OLED");
+  display.init();
+
+  display.flipScreenVertically();
+  display.setFont(ArialMT_Plain_16);
+  display.setTextAlignment(TEXT_ALIGN_LEFT);
+  display.clear();
+  display.drawString(0, 26, "Welcome to Coffeemaker");
+  display.display(); 
+  
   message_print(F("sharespresso"), F("starting up"), 0);
   myCoffeemaker.begin(9600);         // start serial communication at 9600bps
 #if defined(BT)
+  serlog(F("Initializing bluetooth module"));
   myBT.begin(38400);
 #endif
   // initialized rfid lib
 #if defined(DEBUG)
   serlog(F("Initializing rfid reader"));
 #endif
-  SPI.begin();
-#if defined(USE_PN532)  
-  SPI.beginTransaction(nfc_settings);
   nfc.begin();
   uint32_t versiondata = nfc.getFirmwareVersion();
   if (! versiondata) {
 #if defined(DEBUG)
     serlog(F("Didn't find PN53x board"));
 #endif
-#if defined(RFID)
-    while (1); // halt
-#endif
   }
-#endif
-#if defined(USE_MFRC522)
-  mfrc522.PCD_Init(SS_PIN,RST_PIN);
-  ShowReaderDetails();
-#endif
   // configure board to read RFID tags and cards
-#if defined(USE_PN532)
   nfc.SAMConfig();
   nfc.setPassiveActivationRetries(0xfe);
-  SPI.endTransaction();
-#endif
   // configure service button
-#if defined(SERVICEBUT)
-  pinMode(SERVICEBUT,INPUT);
-#endif
-#if defined(NET)
-  // disable card reader, bothers ethernet sometimes
-  pinMode( 4, OUTPUT);
-  digitalWrite( 4, HIGH);
-  delay( 1);
-  serlog( F("Starting network ..."));
-  Ethernet.begin(my_mac, my_ip, my_dns, my_gateway, my_subnet);
-#if defined(SYSLOG)
-  serlog( F("Start logging ..."));
-  Syslog.setLoghost(my_loghost);
-  Syslog.logger(1,5,my_fac,empty, "start");
-#endif
-#endif
+  setup_wifi();
+  mqttClient.setServer(mqtt_server, mqtt_port);
+  mqttClient.setCallback(mqttCallback);
   message_print(F("Ready to brew"), F(""), 2000);
-#if defined(MEMDEBUG)
-  Serial.println(free_ram());
-#endif
   // activate coffemaker connection and inkasso mode
-  myCoffeemaker.listen();
+//  myCoffeemaker.listen();
   inkasso_on();
 }
 
 void loop()
-{
-#if defined(MEMDEBUG)
-  Serial.println(free_ram());
-#endif
-#if defined(SERVICEBUT)
-  if ( digitalRead(SERVICEBUT) == HIGH) {
-    servicetoggle();
-  }
-#endif  
+{  
+    if (!mqttClient.connected()) {
+      mqttReconnect();
+    }
+    mqttClient.loop();
+ 
   // Check if there is a bluetooth connection and command
   BTstring = "";
   // handle serial and bluetooth input
@@ -214,129 +155,13 @@ void loop()
   BTstring.trim();
   
   if (BTstring.length() > 0){
-    // BT: Start registering new cards until 10 s no valid, unregistered card
-#if defined(DEBUG)
-    serlog(BTstring);
-#endif
-#if defined(SYSLOG)
-    Syslog.logger(1,5,my_fac,empty,"cmd "+ BTstring);    
-#endif
-    if( BTstring == "RRR" ){          
-      time = millis();
-      beep(1);
-      message_print(F("Registering"),F("new cards"),0);
-      registernewcards();
-      message_clear();
-    }
-    // BT: Send RFID card numbers to app    
-    if(BTstring == "LLL"){  // 'L' for 'list' sends RFID card numbers to app   
-      for(int i=0;i<n;i++){
-#if defined(BT)
-        unsigned long card=EEPROM.readLong(i*6);
-        myBT.print(print10digits(card)); 
-        if (i < (n-1)) myBT.write(',');  // write comma after card number if not last
-#endif
-      }
-    }
-    // BT: Delete a card and referring credit   
-    if(BTstring.startsWith("DDD") == true){
-      BTstring.remove(0,3); // removes "DDD" and leaves the index
-      int i = BTstring.toInt();
-      i--; // list picker index (app) starts at 1, while RFIDcards array starts at 0
-      unsigned long card= EEPROM.readLong(i*6);
-      int credit= EEPROM.readInt(i*6+4);      
-      message_print(print10digits(card), F("deleting"), 2000);
-#if defined(SYSLOG)
-      Syslog.logger(1,5,my_fac,empty,"delete "+ print10digits(card)+ " "+ printCredit(credit));
-#endif      
-      EEPROM.updateLong(i*6, 0);
-      EEPROM.updateInt(i*6+2, 0);
-      beep(1);
-    }    
-    // BT: Charge a card    
-    if((BTstring.startsWith("CCC") == true) ){  // && (BTstring.length() >= 7 )
-      char a1 = BTstring.charAt(3);  // 3 and 4 => card list picker index (from app)
-      char a2 = BTstring.charAt(4);
-      char a3 = BTstring.charAt(5);  // 5 and 6 => value to charge
-      char a4 = BTstring.charAt(6);    
-      BTstring = String(a1)+String(a2); 
-      int i = BTstring.toInt();    // index of card
-      BTstring = String(a3)+String(a4);
-      int j = BTstring.toInt();   // value to charge
-      j *= 100;
-      i--; // list picker index (app) starts at 1, while RFIDcards array starts at 0  
-      int credit= EEPROM.readInt(i*6+4);
-      credit+= j;
-      EEPROM.writeInt(i*6+4, credit);
-      beep(1);
-      unsigned long card=EEPROM.readLong(i*6);
-      message_print(print10digits(card),"+"+printCredit(j),2000);
-#if defined(SYSLOG)
-      Syslog.logger(1,5,my_fac,empty,"charge "+ print10digits(card)+ " "+ printCredit(j));
-#endif      
-    }
-    // BT: Receives (updated) price list from app.  
-    if(BTstring.startsWith("CHA") == true){
-      int k = 3;
-      for (int i = 0; i < 11;i++){  
-        String tempString = "";
-        do {
-          tempString += BTstring.charAt(k);
-          k++;
-        } 
-        while (BTstring.charAt(k) != ','); 
-        int j = tempString.toInt();
-        Serial.println(i*2+1000);
-        EEPROM.updateInt(i*2+1000, j);
-        k++;
-      }
-      beep(1);
-      message_print(F("Pricelist"), F("updated!"), 2000);
-    }
-    // BT: Sends price list to app. Product 1 to 10 (0-9), prices divided by commas plus standard value for new cards
-    if(BTstring.startsWith("REA") == true){
-      // delay(100); // testweise      
-      for (int i = 0; i < 11; i++) {
-#if defined(BT)
-        price= EEPROM.readInt(1000+i*2);
-        myBT.print(int(price/100));
-        myBT.print('.');
-        if ((price%100) < 10){
-          myBT.print('0');
-        }
-        myBT.print(price%100);
-        if (i < 10) myBT.write(',');
-#endif
-      }
-    } 
-
-    if(BTstring == "?M3"){
-      inkasso_on();
-    }
-    if(BTstring == "?M1"){
-      inkasso_off();  
-    }
-    if(BTstring == "FA:04"){        // small cup ordered via app
-      toCoffeemaker("FA:04\r\n"); 
-      override = true;
-    }
-    if(BTstring == "FA:06"){        // large cup ordered via app
-      toCoffeemaker("FA:06\r\n");  
-      override = true;
-    }
-    if(BTstring == "FA:0C"){        // extra large cup ordered via app
-      toCoffeemaker("FA:0C\r\n");  
-      override = true;
-    }    
+    executeCommand(BTstring);   
   }          
 
   // Get key pressed on coffeemaker
   String message = fromCoffeemaker();   // gets answers from coffeemaker 
   if (message.length() > 0){
     serlog( message);
-#if defined(SYSLOG)
-    Syslog.logger(1,5,my_fac,empty,"coffeemaker "+ message);
-#endif
     if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
       buttonPress = true;
       buttonTime = millis();
@@ -372,7 +197,8 @@ void loop()
             case 9: productname = F("Caffee Latte"); break;
 #endif
           }
-        price = EEPROM.readInt(product* 2+ 1000);
+          price=1;
+//        price = EEPROM.readInt(product* 2+ 1000);
         last_product= String(message.charAt( 3))+ "/"+ String(product)+ " ";
         message_print(productname, printCredit(price), 0);
       } 
@@ -402,7 +228,7 @@ void loop()
   }
   // RFID Identification      
   RFIDcard = 0;  
-  time = millis(); 
+  actTime = millis(); 
   do {
     RFIDcard = nfcidread();
     if (RFIDcard == MASTERCARD) {
@@ -411,28 +237,25 @@ void loop()
       RFIDcard= 0;
     }
     if (RFIDcard != 0) {
-#if defined(LCD)
-      lcd.clear();
-#endif
+      display.clear();
       break; 
     }           
   } 
-  while ( (millis()-time) < 60 );  
+  while ( (millis()-actTime) < 60 );  
 
   if (RFIDcard != 0){
     int k = n;
     for(int i=0;i<n;i++){         
-      if (((RFIDcard) == (EEPROM.readLong(i*6))) && (RFIDcard != 0 )){
+//      if (((RFIDcard) == (EEPROM.readLong(i*6))) && (RFIDcard != 0 )){
+      if(true) {
         k = i;
-        int credit= EEPROM.readInt(k*6+4);
+        int credit=1000;
+ //       int credit= EEPROM.readInt(k*6+4);
         if(buttonPress == true){                 // button pressed on coffeemaker?
            if ((credit - price) > 0) {
             message_print(print10digits(RFIDcard), printCredit(credit), 0);
-            EEPROM.writeInt(k*6+4, ( credit- price));
+//            EEPROM.writeInt(k*6+4, ( credit- price));
             toCoffeemaker("?ok\r\n");            // prepare coffee
-#if defined(SYSLOG)
-            Syslog.logger(1,5,my_fac,empty,"sell "+ print10digits(RFIDcard)+" "+ last_product+ printCredit( price));
-#endif
             buttonPress= false;
             price= 0;
             last_product= "";
@@ -444,9 +267,6 @@ void loop()
         } 
         else {                                // if no button was pressed on coffeemaker / check credit
           message_print(printCredit(credit), F("Remaining credit"), 2000);
-#if defined(SYSLOG)
-          Syslog.logger(1,5,my_fac,empty,"credit "+print10digits(RFIDcard)+" "+printCredit(credit));
-#endif
         }
         i = n;      // leave loop (after card has been identified)
       }      
@@ -455,10 +275,7 @@ void loop()
       k=0; 
       beep(2);
       message_print(String(print10digits(RFIDcard)),F("card unknown!"),2000);
-#if defined(SYSLOG)
-      Syslog.logger(1,5,my_fac,empty,"unknown "+print10digits(RFIDcard));
-#endif
-    }     	    
+    }           
   }
 }
 
@@ -564,34 +381,25 @@ void message_print(String msg1, String msg2, int wait) {
   if (msg2 != "") { Serial.print(msg2); }
   if ((msg1 != "") || (msg2 != "")) { Serial.println(""); }
 #endif
-#if defined(LCD)
-  lcd.clear();
-  lcd.backlight();
+  display.clear();
   if (msg1 != "") {
-    lcd.setCursor(0, 0);
-    lcd.print(msg1);
+    display.drawString(0, 10, msg1);
   }
   if (msg2 != "") {
-    lcd.setCursor(0, 1);
-    lcd.print(msg2);
+    display.drawString(0, 30, msg2);
   }
+  display.display(); 
   if (wait > 0) { 
     delay(wait);
-    lcd.clear();
-    lcd.noBacklight();
+      display.clear();
   }
-#endif
 }
 
 void message_clear() {
-#if defined(LCD)
-  lcd.clear();
-  lcd.noBacklight();
-#endif
+  display.clear();
 }
 
 void beep(byte number){
-#if defined (BUZZER)
   int duration = 200;
   switch (number) {
   case 1: // positive feedback
@@ -620,7 +428,6 @@ void beep(byte number){
       }
     }  
   }
-#endif
 }
 
 void registernewcards() {
@@ -632,22 +439,22 @@ void registernewcards() {
         message_clear();
         break;
       }
-    } while ( (millis()-time) < 60 );  
+    } while ( (millis()-actTime) < 60 );  
     int k = 255;
     if (RFIDcard != 0) {
       if ( RFIDcard == MASTERCARD) {
         break;
       }
       for(int i=0;i<n;i++){
-        if (RFIDcard == EEPROM.readLong(i*6)) {
+//        if (RFIDcard == EEPROM.readLong(i*6)) {
           message_print(print10digits(RFIDcard), F("already exists"), 0);
           beep(2);
           k=254;         
           break;
-        }
-        if ((EEPROM.readLong(i*6) == 0) && (k == 255)) { // find first empty slot
+//        }
+//        if ((EEPROM.readLong(i*6) == 0) && (k == 255)) { // find first empty slot
           k=i;
-        }
+//        }
       }
       if ( k == 255) {
         message_print(F("no slot left"),F(""),0);         
@@ -655,32 +462,25 @@ void registernewcards() {
       }
       if ( k != 254) {
         message_print( print10digits(RFIDcard), F("registered"),0);
-        int credit= EEPROM.readInt(1000+2*10);
-        EEPROM.updateLong(k*6, RFIDcard);
-        EEPROM.updateInt(k*6+4, credit);
-#if defined(SYSLOG)
-        Syslog.logger(1,5,my_fac,empty,"load "+ print10digits(RFIDcard)+ " "+ printCredit(credit));
-#endif
+        int credit=1000;
+//        int credit= EEPROM.readInt(1000+2*10);
+//        EEPROM.updateLong(k*6, RFIDcard);
+//        EEPROM.updateInt(k*6+4, credit);
         beep(1);
       }
-      time = millis();
+      actTime = millis();
     }
-  } while ( (millis()-time) < 10000 );
+  } while ( (millis()-actTime) < 10000 );
   message_print(F("Registering"),F("ended"),2000);
   beep(3);  
 }
 
 unsigned long nfcidread(void) {
   unsigned long id=0;
-#if defined(USE_PN532)
   uint8_t success;
   uint8_t uid[] = { 0,0,0,0,0,0,0,0 };
   uint8_t uidLength;
-
-  SPI.beginTransaction(nfc_settings);
-  success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
-  SPI.endTransaction();
-  
+  success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);  
   if (success) {
     // ugly hack: fine for mifare classic (4 byte)
     // also fine for our ultras (last 4 bytes ever the same)
@@ -691,44 +491,19 @@ unsigned long nfcidread(void) {
     id += (unsigned long)uid[3];
   }
   return id;
-#endif
-#if defined(USE_MFRC522)
-  if ( mfrc522.PICC_IsNewCardPresent()) {
-#if defined(DEBUG)
-    serlog(F("Found card"));
-#endif
-    if ( mfrc522.PICC_ReadCardSerial()) {
-#if defined(DEBUG)
-      serlog(F("Read id"));
-#endif
-      id = (unsigned long)mfrc522.uid.uidByte[0]<<24;
-      id += (unsigned long)mfrc522.uid.uidByte[1]<<16;
-      id += (unsigned long)mfrc522.uid.uidByte[2]<<8;
-      id += (unsigned long)mfrc522.uid.uidByte[3];
-      return id;
-    }
-  }
-  return 0;
-#endif
 }
 
 void servicetoggle(void){
     inservice=not(inservice);
     if ( inservice) {
       message_print(F("Service Mode"),F("started"),0);
-#if defined(SYSLOG)
-      Syslog.logger(1,5,my_fac,empty,"service on");
-#endif
       inkasso_off();
 #if defined(BT)
       myBT.listen();
 #endif
     } else {
       message_print(F("Service Mode"),F("exited"),2000);
-#if defined(SYSLOG)
-      Syslog.logger(1,5,my_fac,empty,"service off");
-#endif
-      myCoffeemaker.listen();
+//      myCoffeemaker.listen();
       inkasso_on();
     }
 }
@@ -736,9 +511,6 @@ void servicetoggle(void){
 void inkasso_on(void){
   toCoffeemaker("?M3\r\n");  // activates incasso mode (= no coffee w/o "ok" from the payment system! May be inactivated by sending "?M3" without quotation marks)
   delay (100);               // wait for answer from coffeemaker
-#if defined(LCD)
-  lcd.backlight();
-#endif
   if (fromCoffeemaker() == "?ok"){
     beep(1);
     message_print(F("Inkasso mode"),F("activated!"),2000);  
@@ -760,31 +532,171 @@ void inkasso_off(void){
   }
 }
 
-#if defined(MEMDEBUG)
-int free_ram(void) { 
-  extern int __heap_start, *__brkval; 
-  int v; 
-  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
-}
-#endif
-
-#if defined(USE_MFRC522)
-void ShowReaderDetails() {
-  // Get the MFRC522 software version
-  byte v = mfrc522.PCD_ReadRegister(mfrc522.VersionReg);
-  Serial.print(F("MFRC522 Software Version: 0x"));
-  Serial.print(v, HEX);
-  if (v == 0x91)
-    Serial.print(F(" = v1.0"));
-  else if (v == 0x92)
-    Serial.print(F(" = v2.0"));
-  else
-    Serial.print(F(" (unknown)"));
-  Serial.println("");
-  // When 0x00 or 0xFF is returned, communication probably failed
-  if ((v == 0x00) || (v == 0xFF)) {
-    Serial.println(F("WARNING: Communication failure, is the MFRC522 properly connected?"));
+void mqttReconnect() {
+  // Loop until we're reconnected
+  while (!mqttClient.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (mqttClient.connect("Jura Giga X8", mqtt_username, mqtt_password)) {
+      Serial.println("connected");
+      // Once connected, publish an announcement...
+      mqttClient.publish(mqtt_topic_out, "Jura Giga X8 is ready now...");
+      // ... and resubscribe
+      mqttClient.subscribe(mqtt_topic_in);
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(mqttClient.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
   }
 }
-#endif
 
+void mqttCallback(char* topic, byte* payload, unsigned int length) {
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  String command  = "";
+  for (int i = 0; i < length; i++) {
+    command += (char)payload[i];
+  }
+  Serial.print(command);
+  executeCommand(command);
+  Serial.println();
+}
+
+void setup_wifi() {
+
+  delay(10);
+  // We start by connecting to a WiFi network
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, pass);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void executeCommand(String command) {
+    // BT: Start registering new cards until 10 s no valid, unregistered card
+#if defined(DEBUG)
+    serlog(command);
+#endif
+    if( command == "RRR" ){          
+      actTime = millis();
+      beep(1);
+      message_print(F("Registering"),F("new cards"),0);
+      registernewcards();
+      message_clear();
+    }
+    // BT: Send RFID card numbers to app    
+    if(command == "LLL"){  // 'L' for 'list' sends RFID card numbers to app   
+      for(int i=0;i<n;i++){
+#if defined(BT)
+        unsigned long card=12345678;
+//        unsigned long card=EEPROM.readLong(i*6);
+        myBT.print(print10digits(card)); 
+        if (i < (n-1)) myBT.write(',');  // write comma after card number if not last
+#endif
+      }
+    }
+    // BT: Delete a card and referring credit   
+    if(command.startsWith("DDD") == true){
+      command.remove(0,3); // removes "DDD" and leaves the index
+      int i = command.toInt();
+      i--; // list picker index (app) starts at 1, while RFIDcards array starts at 0
+//      unsigned long card= EEPROM.readLong(i*6);
+      unsigned long card= 12345678;
+      int credit= 1000;      
+//      int credit= EEPROM.readInt(i*6+4);      
+      message_print(print10digits(card), F("deleting"), 2000);    
+//      EEPROM.updateLong(i*6, 0);
+//      EEPROM.updateInt(i*6+2, 0);
+      beep(1);
+    }    
+    // BT: Charge a card    
+    if((command.startsWith("CCC") == true) ){
+      char a1 = command.charAt(3);  // 3 and 4 => card list picker index (from app)
+      char a2 = command.charAt(4);
+      char a3 = command.charAt(5);  // 5 and 6 => value to charge
+      char a4 = command.charAt(6);    
+      command = String(a1)+String(a2); 
+      int i = command.toInt();    // index of card
+      command = String(a3)+String(a4);
+      int j = command.toInt();   // value to charge
+      j *= 100;
+      i--; // list picker index (app) starts at 1, while RFIDcards array starts at 0  
+      int credit=1000;
+//      int credit= EEPROM.readInt(i*6+4);
+      credit+= j;
+//      EEPROM.writeInt(i*6+4, credit);
+      beep(1);
+//      unsigned long card=EEPROM.readLong(i*6);
+      unsigned long card=12345678;
+      message_print(print10digits(card),"+"+printCredit(j),2000);    
+    } 
+    // BT: Receives (updated) price list from app.  
+    if(command.startsWith("CHA") == true){
+      int k = 3;
+      for (int i = 0; i < 11;i++){  
+        String tempString = "";
+        do {
+          tempString += command.charAt(k);
+          k++;
+        } 
+        while (command.charAt(k) != ','); 
+        int j = tempString.toInt();
+        Serial.println(i*2+1000);
+//        EEPROM.updateInt(i*2+1000, j);
+        k++;
+      }
+      beep(1);
+      message_print(F("Pricelist"), F("updated!"), 2000);
+    }
+    // BT: Sends price list to app. Product 1 to 10 (0-9), prices divided by commas plus standard value for new cards
+    if(command.startsWith("REA") == true){
+      // delay(100); // testweise      
+      for (int i = 0; i < 11; i++) {
+#if defined(BT)
+        price=1;
+//        price= EEPROM.readInt(1000+i*2);
+        myBT.print(int(price/100));
+        myBT.print('.');
+        if ((price%100) < 10){
+          myBT.print('0');
+        }
+        myBT.print(price%100);
+        if (i < 10) myBT.write(',');
+#endif
+      }
+    } 
+
+    if(command == "?M3"){
+      inkasso_on();
+    }
+    if(command == "?M1"){
+      inkasso_off();  
+    }
+    if(command == "FA:04"){        // small cup ordered via app
+      toCoffeemaker("FA:04\r\n"); 
+      override = true;
+    }
+    if(command == "FA:06"){        // large cup ordered via app
+      toCoffeemaker("FA:06\r\n");  
+      override = true;
+    }
+    if(command == "FA:0C"){        // extra large cup ordered via app
+      toCoffeemaker("FA:0C\r\n");  
+      override = true;
+    } 
+ }
