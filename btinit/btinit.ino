@@ -13,7 +13,7 @@
 #include <SoftwareSerial.h>
 
 #define KEY 3
-SoftwareSerial mySerial(7,6); // RX, TX
+SoftwareSerial mySerial(13,12); // RX, TX
 
 void setup(void){ 
   // Init serials
@@ -26,9 +26,9 @@ void setup(void){
   
   delay(2000);
   // Set key pin to high (set HC-05 to config mode)
-  pinMode(KEY, OUTPUT);
-  digitalWrite(KEY, HIGH);
-  Serial.println("Ready to send AT commands ...");
+//  pinMode(KEY, OUTPUT);
+//  digitalWrite(KEY, HIGH);
+  Serial.println("Press button on HC-05 to enter AT mode ...");
 }
 
 void loop(void) {
