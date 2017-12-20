@@ -1,6 +1,6 @@
 #include "juragigax8.h";
 
-SoftwareSerial myCoffeemaker(15,16); // RX, TX
+SoftwareSerial myCoffeemaker(JURA_RX_PIN,JURA_TX_PIN); // RX, TX
 int inservice=0;
 
 JuraGigaX8::JuraGigaX8(OledDisplay& oled, Buzzer& buzzer) {

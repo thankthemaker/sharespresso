@@ -1,7 +1,13 @@
 #include "Arduino.h";
+#ifndef SETTINGS_H_
+ #include "settings.h";
+#endif
 
 #define BUZZER_H_
-#define BUZPIN 0  // digital pin for buzzer
+
+#ifndef BUZPIN
+ #define BUZPIN 0  // digital pin for buzzer
+#endif
 
 class Buzzer {
     public:
