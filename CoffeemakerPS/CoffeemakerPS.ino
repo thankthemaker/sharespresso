@@ -33,26 +33,19 @@ char trivialfix;
 #include "juragigax8.h";
 #include "mqtt.h";
 #include "nfcreader.h";
+#include "ble.h";
+#include "eepromconfig.h";
 
 
 // options to include into project
-#define BT 1 // bluetooth module
 #define DEBUG 1 // some more logging
 // set your application specific settings here
 // coffemaker model
 //#define X7 1 // x7/saphira
 #define S95 1
 
-
 #include <Wire.h>
-#include <SoftwareSerial.h>
-#include <EEPROM.h>
 #include <SPI.h>
-
-// hardware specific settings
-#if defined(BT)
-SoftwareSerial myBT(7,8);
-#endif
 
 // product codes send by coffeemakers "?PA<x>\r\n", just <x>
 #if defined(S95)
@@ -72,11 +65,6 @@ unsigned long RFIDcard = 0;
 int price=0;
 String last_product="";
 
-#define PN532_SS   (2)
-#define PN532_SCK  (14)
-#define PN532_MISO (12)
-#define PN532_MOSI (13)
-
 Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
 
 OledDisplay oled;
@@ -84,16 +72,15 @@ MqttService mqttService;
 Buzzer buzzer;
 NfcReader nfcReader(nfc, oled, buzzer);
 JuraGigaX8 coffeemaker(oled, buzzer);
+BleConnection bleConnection;
 CoffeeLogger logger;
+EEPROMConfig eepromConfig;
 
-void setup()
-{
+void setup() {
 #if defined(SERLOG) || defined(DEBUG)
   Serial.begin(9600);
 #endif
 #if defined(DEBUG)
-//  EEPROM.setMaxAllowedWrites(100);
-//  EEPROM.setMemPool(0, EEPROMSizeUno);
   Serial.println(sizeof(products));
 #endif
   logger.serlog("Initializing OLED");
@@ -101,10 +88,10 @@ void setup()
   
   oled.message_print(F("sharespresso"), F("starting up"), 0);
   coffeemaker.initCoffeemaker();         // start serial communication at 9600bps
-#if defined(BT)
+
   logger.serlog(F("Initializing bluetooth module"));
-  myBT.begin(38400);
-#endif
+  bleConnection.initBle();
+
   // initialized rfid lib
 #if defined(DEBUG)
   logger.serlog(F("Initializing rfid reader"));
@@ -133,14 +120,9 @@ void loop()
     mqttService.loopMqtt();
  
   // Check if there is a bluetooth connection and command
-  BTstring = "";
   // handle serial and bluetooth input
-#if defined(BT)
-    while( myBT.available()) {
-      BTstring +=String(char(myBT.read()));
-      delay(7);
-    }
-#endif
+  BTstring = bleConnection.readCommand();
+
   while( Serial.available() ){  
     BTstring += String(char(Serial.read()));
     delay(7);  
@@ -190,8 +172,7 @@ void loop()
             case 9: productname = F("Caffee Latte"); break;
 #endif
           }
-          price=1;
-//        price = EEPROM.readInt(product* 2+ 1000);
+        price = eepromConfig.readPrice(product* 2+ 1000);
         last_product= String(message.charAt( 3))+ "/"+ String(product)+ " ";
         oled.message_print(productname, logger.printCredit(price), 0);
       } 
@@ -239,15 +220,13 @@ void loop()
   if (RFIDcard != 0){
     int k = MAX_CARDS;
     for(int i=0;i<MAX_CARDS;i++){         
-//      if (((RFIDcard) == (EEPROM.readLong(i*6))) && (RFIDcard != 0 )){
-      if(true) {
+      if (((RFIDcard) == (eepromConfig.readCard(i*6))) && (RFIDcard != 0 )){
         k = i;
-        int credit=1000;
- //       int credit= EEPROM.readInt(k*6+4);
+        int credit = eepromConfig.readCredit(k*6+4);
         if(buttonPress == true){                 // button pressed on coffeemaker?
            if ((credit - price) > 0) {
             oled.message_print(logger.print10digits(RFIDcard), logger.printCredit(credit), 0);
-//            EEPROM.writeInt(k*6+4, ( credit- price));
+            eepromConfig.writeCredit(k*6+4, ( credit- price));
             coffeemaker.toCoffeemaker("?ok\r\n");            // prepare coffee
             buttonPress= false;
             price= 0;
@@ -287,12 +266,9 @@ void executeCommand(String command) {
     // BT: Send RFID card numbers to app    
     if(command == "LLL"){  // 'L' for 'list' sends RFID card numbers to app   
       for(int i=0;i<MAX_CARDS;i++){
-#if defined(BT)
-        unsigned long card=12345678;
-//        unsigned long card=EEPROM.readLong(i*6);
-        myBT.print(logger.print10digits(card)); 
-        if (i < (MAX_CARDS-1)) myBT.write(',');  // write comma after card number if not last
-#endif
+        unsigned long card=eepromConfig.readCard(i*6);
+        bleConnection.getSerial().print(logger.print10digits(card)); 
+        if (i < (MAX_CARDS-1)) bleConnection.getSerial().write(',');  // write comma after card number if not last
       }
     }
     // BT: Delete a card and referring credit   
@@ -300,13 +276,11 @@ void executeCommand(String command) {
       command.remove(0,3); // removes "DDD" and leaves the index
       int i = command.toInt();
       i--; // list picker index (app) starts at 1, while RFIDcards array starts at 0
-//      unsigned long card= EEPROM.readLong(i*6);
-      unsigned long card= 12345678;
-      int credit= 1000;      
-//      int credit= EEPROM.readInt(i*6+4);      
+      unsigned long card= eepromConfig.readCard(i*6);
+      int credit= eepromConfig.readCredit(i*6+4);      
       oled.message_print(logger.print10digits(card), F("deleting"), 2000);    
-//      EEPROM.updateLong(i*6, 0);
-//      EEPROM.updateInt(i*6+2, 0);
+      eepromConfig.deleteCard(i*6, 0);
+      eepromConfig.deleteCredit(i*6+2, 0);
       buzzer.beep(1);
     }    
     // BT: Charge a card    
@@ -321,13 +295,11 @@ void executeCommand(String command) {
       int j = command.toInt();   // value to charge
       j *= 100;
       i--; // list picker index (app) starts at 1, while RFIDcards array starts at 0  
-      int credit=1000;
-//      int credit= EEPROM.readInt(i*6+4);
+      int credit= eepromConfig.readCredit(i*6+4);
       credit+= j;
-//      EEPROM.writeInt(i*6+4, credit);
+      eepromConfig.writeCredit(i*6+4, credit);
       buzzer.beep(1);
-//      unsigned long card=EEPROM.readLong(i*6);
-      unsigned long card=12345678;
+      unsigned long card=eepromConfig.readCard(i*6);
       oled.message_print(logger.print10digits(card),"+"+logger.printCredit(j),2000);    
     } 
     // BT: Receives (updated) price list from app.  
@@ -352,17 +324,14 @@ void executeCommand(String command) {
     if(command.startsWith("REA") == true){
       // delay(100); // testweise      
       for (int i = 0; i < 11; i++) {
-#if defined(BT)
-        price=1;
-//        price= EEPROM.readInt(1000+i*2);
-        myBT.print(int(price/100));
-        myBT.print('.');
+        price= eepromConfig.readPrice(1000+i*2);
+        bleConnection.getSerial().print(int(price/100));
+        bleConnection.getSerial().print('.');
         if ((price%100) < 10){
-          myBT.print('0');
+          bleConnection.getSerial().print('0');
         }
-        myBT.print(price%100);
-        if (i < 10) myBT.write(',');
-#endif
+        bleConnection.getSerial().print(price%100);
+        if (i < 10) bleConnection.getSerial().write(',');
       }
     } 
 
