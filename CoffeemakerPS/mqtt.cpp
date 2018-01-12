@@ -56,3 +56,9 @@ void MqttService::mqttReconnect() {
   }
 }
 
+void MqttService::publish(String message) {
+  char charBuf[message.length()+1];
+  message.toCharArray(charBuf, message.length()+1); 
+  this->mqttClient.publish(MQTT_TOPIC_OUT, charBuf);
+}
+

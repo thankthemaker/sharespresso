@@ -17,8 +17,12 @@ http://heise.de/-3058350
 
 The coffeemaker payment system is connected to the internet via ESP68266 WiFi chipset. 
 
-Hardware used: Sparkfun ESP8266 Thin Dev, AZDelivery 128x64 OLED, pn532 nfc card reader
-reader (13.56MHz), HC-05 Bluetooth, buzzer
+Hardware used: 
+Sparkfun ESP8266 Thing Dev https://www.sparkfun.com/products/13711, 
+AZDelivery 128x64 OLED https://www.amazon.de/AZDelivery-Display-Arduino-Raspberry-gratis/dp/B01L9GC470, 
+pn532 nfc card reader (13.56MHz) http://www.elecfreaks.com/estore/nfc-rfid-breakout-module.html, 
+DSD Tech HC-05 Bluetooth https://www.amazon.de/dp/B01G9KSAF6/ref=pe_3044161_185740101_TE_item, 
+Piezo Summer Micro Buzzer 3-24V 
 
 Features:
 NFC-enabled payment system, useable with different payment methods (prepaid, crypto-coin, ...)

@@ -5,6 +5,9 @@
 #ifndef SETTINGS_H_
  #include "settings.h";
 #endif
+#ifndef EEPROMCONFIG_H_
+ #include "eepromconfig.h";
+#endif
 #ifndef OLED_H_
   #include "oled.h";
 #endif
