@@ -9,6 +9,9 @@ NfcReader::NfcReader(Adafruit_PN532& nfc, OledDisplay& oled, Buzzer& buzzer) {
 void NfcReader::registernewcards() {
   unsigned long RFIDcard = 0;
   unsigned long actTime = millis();
+  EEPROMConfig eepromConfig;
+  cardlist_t cardlist =  eepromConfig.readCards();
+
   do {
     RFIDcard = 0;
     do {
@@ -24,15 +27,15 @@ void NfcReader::registernewcards() {
         break;
       }
       for(int i=0;i<MAX_CARDS;i++){
-//        if (RFIDcard == EEPROM.readLong(i*6)) {
+        if (RFIDcard == cardlist.cards[i].card) {
           this->oled->message_print(logger.print10digits(RFIDcard), F("already exists"), 0);
           this->buzzer->beep(2);
           k=254;         
           break;
-//        }
-//        if ((EEPROM.readLong(i*6) == 0) && (k == 255)) { // find first empty slot
+        }
+        if ((cardlist.cards[i].card == 0) && (k == 255)) { // find first empty slot
           k=i;
-//        }
+        }
       }
       if ( k == 255) {
         this->oled->message_print(F("no slot left"),F(""),0);         
@@ -42,7 +45,8 @@ void NfcReader::registernewcards() {
         this->oled->message_print( logger.print10digits(RFIDcard), F("registered"),0);
         int credit=1000;
 //        int credit= EEPROM.readInt(1000+2*10);
-//        EEPROM.updateLong(k*6, RFIDcard);
+        cardlist.cards[k].card = RFIDcard;
+        eepromConfig.updateCards(cardlist);
 //        EEPROM.updateInt(k*6+4, credit);
         this->buzzer->beep(1);
       }
