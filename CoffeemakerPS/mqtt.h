@@ -21,5 +21,6 @@ class MqttService {
         void initMqtt(MQTT_CALLBACK_SIGNATURE);
         void loopMqtt();
         void mqttReconnect();
+        void publish(String message);
 };
 
