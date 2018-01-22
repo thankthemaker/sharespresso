@@ -1,7 +1,10 @@
 #include "Arduino.h"
+#ifdef SYSLOG
+  #include <Syslog.h> // https://github.com/tomoconnor/ardusyslog/
+#endif
+
 
 #define LOGGER_H_
-#define SERLOG 1 // logging to serial port
 
 class CoffeeLogger {
   public:
