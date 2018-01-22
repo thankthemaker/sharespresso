@@ -1,4 +1,4 @@
-#include "nfcreader.h";
+#include "pn532nfc.h";
 
 NfcReader::NfcReader(Adafruit_PN532& nfc, OledDisplay& oled, Buzzer& buzzer) {
   this->nfc = &nfc;

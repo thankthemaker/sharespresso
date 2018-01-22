@@ -35,7 +35,7 @@ char trivialfix;
 #endif
 #include "juragigax8.h";
 #include "mqtt.h";
-#include "nfcreader.h";
+#include "pn532nfc.h";
 #include "ble.h";
 #include "otaupdate.h";
 
