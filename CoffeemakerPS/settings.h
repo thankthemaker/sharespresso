@@ -15,6 +15,13 @@
 #define MQTT_USERNAME       "<YOUR_MQTT_USERNAME>"
 #define MQTT_PASSWORD       "<YOUR_MQTT_PASSWORD>"  
 
+// Logging setings
+#define SERLOG              1 // logging to serial port
+
+// Syslog settings
+#define SYSLOG              0 
+#define SYSLOG_HOST         ""
+
 #define NODEMCU_1_0
 //#define SPARKFUN
 
