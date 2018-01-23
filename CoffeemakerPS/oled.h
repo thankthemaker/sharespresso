@@ -1,9 +1,6 @@
 #include "Arduino.h"
+#include "IDisplay.h"
 #include "SSD1306Brzo.h" //OLED I2C
-
-#ifndef SETTINGS_H_
- #include "settings.h"
-#endif
 
 #define OLED_H_
 
@@ -14,11 +11,11 @@
  OLED_TX_PIN 5
 #endif
 
-class OledDisplay {
+class OledDisplay : virtual public IDisplay {
     public:
         OledDisplay();
 
-        void initOled();
+        void init();
         void message_print(String msg1, String msg2, int wait);
         void message_clear();
 };
