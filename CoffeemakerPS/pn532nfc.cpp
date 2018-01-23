@@ -1,12 +1,12 @@
 #include "pn532nfc.h";
 
-NfcReader::NfcReader(Adafruit_PN532& nfc, OledDisplay& oled, Buzzer& buzzer) {
+Pn532NfcReader::Pn532NfcReader(Adafruit_PN532& nfc, OledDisplay& oled, Buzzer& buzzer) {
   this->nfc = &nfc;
   this->oled = &oled;
   this->buzzer = &buzzer;
 };
 
-void NfcReader::registernewcards() {
+void Pn532NfcReader::registernewcards() {
   unsigned long RFIDcard = 0;
   unsigned long actTime = millis();
   EEPROMConfig eepromConfig;
@@ -57,7 +57,7 @@ void NfcReader::registernewcards() {
   this->buzzer->beep(3);  
 }
 
-unsigned long NfcReader::nfcidread(void) {
+unsigned long Pn532NfcReader::nfcidread(void) {
   unsigned long id=0;
   uint8_t success;
   uint8_t uid[] = { 0,0,0,0,0,0,0,0 };
