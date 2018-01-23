@@ -69,12 +69,11 @@ String last_product="";
 pricelist_t pricelist;
 cardlist_t cardlist;
 
-Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
-
 OledDisplay oled;
 MqttService mqttService;
 Buzzer buzzer;
-NfcReader nfcReader(nfc, oled, buzzer);
+Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
+Pn532NfcReader nfcReader(nfc, oled, buzzer);
 JuraGigaX8 coffeemaker(oled, buzzer);
 BleConnection bleConnection;
 CoffeeLogger logger;
@@ -89,7 +88,7 @@ void setup() {
   logger.serlog("number of products: " + String(sizeof(products)));
 #endif
   logger.serlog("initializing OLED");
-  oled.initOled();
+  oled.init();
   
   oled.message_print(F("sharespresso"), F("starting up"), 0);
   coffeemaker.initCoffeemaker();         // start serial communication at 9600bps
