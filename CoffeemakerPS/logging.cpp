@@ -1,6 +1,8 @@
 #include "logging.h"
 
-CoffeeLogger::CoffeeLogger() {}
+CoffeeLogger::CoffeeLogger() : syslog(udpClient, SYSLOG_SERVER, SYSLOG_PORT, DEVICE_HOSTNAME, APP_NAME, LOG_KERN){
+  Serial.println("staring syslog");
+ }
 
 String CoffeeLogger::print10digits(unsigned long number) {
   String(tempString) = String(number);
@@ -37,8 +39,18 @@ String CoffeeLogger::printCredit(int credit){
   return output;
 }
 
-void CoffeeLogger::serlog(String msg) {
+void CoffeeLogger::log(String msg) {
+  log(LOG_INFO, msg);
+}
+
+void CoffeeLogger::log(uint16_t pri, String msg) {
 #if defined(SERLOG)
   Serial.println(msg);
+#endif
+#if defined(SYSLOG)
+  if(WiFi.status() == WL_CONNECTED) {
+    Serial.println("send to syslog: " + msg);
+    syslog.log(pri, msg); 
+  }
 #endif
 }
