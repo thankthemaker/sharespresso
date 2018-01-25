@@ -4,20 +4,17 @@
 
 // Your WiFi credentials.
 // Set password to "" for open networks.
-//#define WIFI_SSID           "<YOUR_WIFI_SSID>"
-//#define WIFI_PASSWORD       "<YOUR_WIFI_PASSWORD>"
-#define WIFI_SSID           "***REMOVED***"
-#define WIFI_PASSWORD       "***REMOVED***"
+#define WIFI_SSID           "<YOUR_WIFI_SSID>"
+#define WIFI_PASSWORD       "<YOUR_WIFI_PASSWORD>"
 
 // MQTT settings
 #define MQTT_SERVER         "mqtt.thank-the-maker.org"
 #define MQTT_PORT           1883
 #define MQTT_TOPIC_IN       "/coffeemaker/gigax8/toCoffeemaker"
 #define MQTT_TOPIC_OUT      "/coffeemaker/gigax8/fromCoffeemaker"
-//#define MQTT_USERNAME       "<YOUR_MQTT_USERNAME>"
-//#define MQTT_PASSWORD       "<YOUR_MQTT_PASSWORD>"  
-#define MQTT_USERNAME       "dgey"
-#define MQTT_PASSWORD       "test"  
+#define MQTT_USERNAME       "<YOUR_MQTT_USERNAME>"
+#define MQTT_PASSWORD       "<YOUR_MQTT_PASSWORD>"  
+
 
 #define APP_NAME            "Sharepresso"
 
