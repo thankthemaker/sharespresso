@@ -15,18 +15,23 @@
 #define MQTT_USERNAME       "<YOUR_MQTT_USERNAME>"
 #define MQTT_PASSWORD       "<YOUR_MQTT_PASSWORD>"  
 
+
+#define APP_NAME            "Sharepresso"
+
 // Logging setings
 #define SERLOG              1 // logging to serial port
 
 // Syslog settings
-#define SYSLOG              0 
-#define SYSLOG_HOST         ""
+#define SYSLOG              0
+#define SYSLOG_SERVER       "genas.fritz.box"
+#define SYSLOG_PORT         514
 
 #define NODEMCU_1_0
 //#define SPARKFUN
 
 // PIN definition Sparkfun ESP8266 Thing Dev
 #ifdef SPARKFUN
+ #define DEVICE_HOSTNAME     "Sparkfun ESP8266 Thing Dev"
  #define EEPROM_SIZE_BYTES   512
  // number of cards, max is (512-11*2)/6=81 on ESP8266 Sparkfun Thing Dev
  #define MAX_CARDS           40  // only 60 cards to keep some space reserved  
@@ -51,6 +56,7 @@
 
 // PIN definition AI Thinker NodeMCU 1.0
 #ifdef NODEMCU_1_0
+  #define DEVICE_HOSTNAME     "NodeMCU 1.0 Amica"
   #define EEPROM_SIZE_BYTES   4096
   // number of cards, max is (4096-11*2)/6=679 on NodeMCU v1.0
   #define MAX_CARDS           40  // only 40 cards to keep some space reserved  
