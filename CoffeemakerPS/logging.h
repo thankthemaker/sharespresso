@@ -1,16 +1,24 @@
 #include "Arduino.h"
-#ifdef SYSLOG
-  #include <Syslog.h> // https://github.com/tomoconnor/ardusyslog/
-#endif
+#include <ESP8266WiFi.h>;
+#include <WiFiUdp.h>
+#include <Syslog.h>   //https://github.com/arcao/Syslog
 
+#ifndef SETTINGS_H_
+ #include "settings.h"
+#endif
 
 #define LOGGER_H_
 
 class CoffeeLogger {
+  private:
+    WiFiUDP udpClient;
+    Syslog syslog;
+  
   public:
     CoffeeLogger();
-  
-    void serlog(String msg);
+
+    void log(String msg);
+    void log(uint16_t pri, String msg);
     String print2digits(int number);
     String print10digits(unsigned long number);
     String printCredit(int credit); 

@@ -41,7 +41,7 @@ char trivialfix;
 
 
 // options to include into project
-#define DEBUG 1 // some more logging
+#define DEBUG 0 // some more logging
 // coffemaker model
 //#define X7 1 // x7/saphira
 #define S95 1
@@ -85,43 +85,43 @@ void setup() {
   Serial.begin(9600);
 #endif
 #if defined(DEBUG)
-  logger.serlog("number of products: " + String(sizeof(products)));
+  logger.log("number of products: " + String(sizeof(products)));
 #endif
-  logger.serlog("initializing OLED");
+  logger.log("initializing OLED");
   oled.init();
   
   oled.message_print(F("sharespresso"), F("starting up"), 0);
   coffeemaker.initCoffeemaker();         // start serial communication at 9600bps
 
-  logger.serlog(F("initializing bluetooth module"));
+  logger.log(F("initializing bluetooth module"));
   bleConnection.initBle();
 
   // initialized rfid lib
 #if defined(DEBUG)
-  logger.serlog(F("initializing rfid reader"));
+  logger.log(F("initializing rfid reader"));
 #endif
   nfc.begin();
   uint32_t versiondata = nfc.getFirmwareVersion();
   if (! versiondata) {
 #if defined(DEBUG)
-    logger.serlog(F("didn't find PN53x board"));
+    logger.log(F("didn't find PN53x board"));
 #endif
   }
   // configure board to read RFID tags and cards
   nfc.SAMConfig();
   nfc.setPassiveActivationRetries(0xfe);
 
-  logger.serlog("reading pricelist from EEPROM");
+  logger.log("reading pricelist from EEPROM");
   pricelist = eepromConfig.readPricelist();
   for(int i=0; i<10; i++) {
     String message = "price for product[" + String(i) + "]: " + String(pricelist.prices[i]);
-      logger.serlog(message);
+      logger.log("msg=" + message);
   }
 
   cardlist = eepromConfig.readCards();
   for(int i=0; i<MAX_CARDS; i++) {
     String message = "registered card[" + String(i) + "]: " + String(cardlist.cards[i].card);
-      logger.serlog(message);
+    logger.log(message);
   }
 
   mqttService.setup_wifi();
@@ -151,8 +151,8 @@ void loop() {
 
   // Get key pressed on coffeemaker
   String message = coffeemaker.fromCoffeemaker();   // gets answers from coffeemaker 
-  if (message.length() > 0){
-    logger.serlog( message);
+  if (message.length() > 0 && message != ""){
+    logger.log("msg=" + message);
     if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
       buttonPress = true;
       buttonTime = millis();
@@ -270,7 +270,7 @@ void loop() {
 void executeCommand(String command) {
     // BT: Start registering new cards until 10 s no valid, unregistered card
 #if defined(DEBUG)
-    logger.serlog(command);
+    logger.log("cmd=" + command);
 #endif
     if( command == "RRR" ){          
       actTime = millis();
@@ -343,7 +343,9 @@ void executeCommand(String command) {
           k++;
         } while (command.charAt(k) != ','); 
         int j = tempString.toInt();
-        Serial.println(i*2+PRICELIST_ADDRESS_OFFSET);
+#if defined(DEBUG)        
+        logger.log(String(i*2) + PRICELIST_ADDRESS_OFFSET);
+#endif
         if(i!=10) {
           pricelist.prices[i] = j;
         } else {
@@ -406,14 +408,11 @@ void executeCommand(String command) {
 // callback signature "std::function<void(char*, uint8_t*, unsigned int)> callback"
 // in PubSubClient for ESP8266
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
+  logger.log("Message arrived [" + String(topic) + "] ");
   String command  = "";
   for (int i = 0; i < length; i++) {
     command += (char)payload[i];
   }
-  Serial.print(command);
+  logger.log("cmd via mqtt:" + command);
   executeCommand(command);
-  Serial.println();
 }
