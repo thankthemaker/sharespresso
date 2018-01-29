@@ -16,3 +16,6 @@ will guide you.
 ## Initialize BLE-Module (optional)
 If you'd like to use a BLE-module and the native Android App, please follow the description of the c't magazin. We prefer to use our 
 Ionic3-App :)
+
+## Understand the modules
+If you'd like to make changes to the code, please take a look at the [documentation of the modules](Modules.md).
