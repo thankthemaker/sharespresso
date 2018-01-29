@@ -68,8 +68,8 @@
   #define OLED_SDC_PIN        5  //D1
   #define BLE_RX_PIN          3  //RX
   #define BLE_TX_PIN          1  //TX
-  #define JURA_RX_PIN         15
-  #define JURA_TX_PIN         16 
+  #define JURA_RX_PIN         9  // SD2
+  #define JURA_TX_PIN         10 // SD3
 
  #define PN532_SCK            (14) //D5
  #define PN532_MISO           (12) //D6
