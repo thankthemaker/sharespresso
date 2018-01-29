@@ -36,8 +36,7 @@ Features:
 * useable with different payment methods (prepaid, crypto-coin, ...)
 * administration via MQTT and BLE, Ionic3(MQTT) and Android-App (BLE) available
 * OLED Display with animations and status information
-* ...
-
+* Over-the-air update process, triggered by MQTT
 
 The code is provided 'as is', without any guarantuee. Use at your own
 risk!
