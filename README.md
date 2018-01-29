@@ -6,7 +6,7 @@ toptronic logic unit, as Jura Impressa S95 and others without
 modifying the coffeemaker itself. We currently use it with a 
 _Jura Giga X8 professional_.
 
-The project is Based on Oliver Krohns famous Coffeemaker-Payment-System at
+The project is based on Oliver Krohns famous Coffeemaker-Payment-System at
 
 https://github.com/oliverk71/Coffeemaker-Payment-System
 
@@ -16,7 +16,7 @@ https://github.com/psct/sharespresso
 
 http://heise.de/-3058350
 
-The main difference to the original project is that the coffeemaker payment system is connected to the internet via ESP8266 WiFi chipset and may be administrated with a Ionic3-App via MQTT.
+The main difference to the original project is that the coffeemaker payment system is connected to the internet via ESP8266 WiFi chipset and may be administrated with a [Ionic3-App](https://github.com/thankthemaker/coffeemaker-ionic) via MQTT.
 
 Here's an example for a prototype hook-up.
 
