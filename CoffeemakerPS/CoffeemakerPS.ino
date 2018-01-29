@@ -1,5 +1,5 @@
 /* 
- Sharespresso by Thank-The-Maker.org
+ IoT-Sharespresso by Thank-The-Maker.org
  
  is an Arduino-based RFID payment system for coffeemakers with toptronic logic unit, as Jura 
  Impressa S95 and others without modifying the coffeemaker itself. 
@@ -13,11 +13,12 @@
  at https://www.heise.de/ct/artikel/Sharespresso-NFC-Bezahlsystem-fuer-Kaffeevollautomaten-3058350.html
  
  Hardware used: 
-  - SparkFun ESP8266 Thing - Dev Board
+  - NodeMCU v1.0 Dev-Board (Amica)
   - AZDelivery 3er Set 128 x 64 Pixel 0,96 Zoll OLED Display
   - pn532/mfrc522 rfid card reader (13.56MHz), 
   - HC-05 bluetooth, male/female jumper wires (optional: ethernet shield, buzzer, button)
- 
+  - piezo buzzer 
+
  The code is provided 'as is', without any guarantuee. Use at your own risk! 
 */
 
