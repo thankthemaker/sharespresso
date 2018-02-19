@@ -1,22 +1,19 @@
-#include <ESP8266httpUpdate.h>
+#ifndef OTAUPDATE_H
+#define OTAUPDATE_H
 
-#ifndef LOGGER_H_
-  #include "logging.h";
-#endif
-#ifndef SETTINGS_H_
- #include "settings.h"
-#endif
-#ifndef OLED_H_
-  #include "oled.h";
-#endif
+#include <ESP8266httpUpdate.h>
+#include "logging.h";
+#include "settings.h"
+#include "IDisplay.h"
 
 class OTAUpdate {
     private:
         CoffeeLogger logger;
-        OledDisplay* oled;
+        IDisplay* oled;
 
 
     public:
-        OTAUpdate(OledDisplay& oled);
+        OTAUpdate(IDisplay *oled);
         void startUpdate();
 };
+#endif

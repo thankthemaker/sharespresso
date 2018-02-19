@@ -1,9 +1,10 @@
+#ifndef BLE_H
+#define BLE_H
+
 #include "Arduino.h";
 #include <SoftwareSerial.h>;
 
-#ifndef SETTINGS_H_
  #include "settings.h";
-#endif
 
 #ifndef BLE_RX_PIN
  #define BLE_RX_PIN 7
@@ -23,3 +24,4 @@ class BleConnection {
         String readCommand();
         SoftwareSerial getSerial();
 };
+#endif

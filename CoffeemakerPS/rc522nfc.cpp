@@ -1,28 +1,16 @@
-#include "pn532nfc.h";
+#include "rc522nfc.h";
 
-SPISettings nfc_settings(SPI_CLOCK_DIV8, LSBFIRST, SPI_MODE0);
-
-Pn532NfcReader::Pn532NfcReader(IDisplay *oled, Buzzer *buzzer) : nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS){
+Rc522NfcReader::Rc522NfcReader(IDisplay *oled, Buzzer *buzzer) : nfc(RC522_SS, RC522_RST){
   this->oled = oled;
   this->buzzer = buzzer;
 };
 
-void Pn532NfcReader::initNfcReader() {
-  SPI.beginTransaction(nfc_settings);
-  this->nfc.begin();
-  uint32_t versiondata = this->nfc.getFirmwareVersion();
-  if (! versiondata) {
-#if defined(DEBUG)
-    logger.log(F("didn't find PN53x board"));
-#endif
-  }
-  // configure board to read RFID tags and cards
-  this->nfc.SAMConfig();
-  this->nfc.setPassiveActivationRetries(0xfe);
-  SPI.endTransaction();
+void Rc522NfcReader::initNfcReader() {
+  this->nfc.PCD_Init();		// Init MFRC522
+  this->nfc.PCD_DumpVersionToSerial();	// Show details of PCD - MFRC522 Card Reader details
 }
 
-void Pn532NfcReader::registernewcards() {
+void Rc522NfcReader::registernewcards() {
   unsigned long RFIDcard = 0;
   unsigned long actTime = millis();
   EEPROMConfig eepromConfig;
@@ -31,7 +19,7 @@ void Pn532NfcReader::registernewcards() {
   do {
     RFIDcard = 0;
     delay(100); // Make our ESP8266 Watchdog happy
-      do {
+    do {
       RFIDcard = this->nfcidread();
       if (RFIDcard != 0) {
         this->oled->message_clear();
@@ -74,22 +62,22 @@ void Pn532NfcReader::registernewcards() {
   this->buzzer->beep(3);  
 }
 
-unsigned long Pn532NfcReader::nfcidread(void) {
+unsigned long Rc522NfcReader::nfcidread(void) {
   unsigned long id=0;
-  uint8_t success;
-  uint8_t uid[] = { 0,0,0,0,0,0,0,0 };
-  uint8_t uidLength;
-  SPI.beginTransaction(nfc_settings);
-  success = this->nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);  
-   SPI.endTransaction();
- if (success) {
-    // ugly hack: fine for mifare classic (4 byte)
-    // also fine for our ultras (last 4 bytes ever the same)
-    // nfc.PrintHex(uid, uidLength);
-    id = (unsigned long)uid[0]<<24;
-    id += (unsigned long)uid[1]<<16;
-    id += (unsigned long)uid[2]<<8;
-    id += (unsigned long)uid[3];
+
+  if ( ! this->nfc.PICC_IsNewCardPresent()) { //If a new PICC placed to RFID reader continue
+    return 0;
   }
+  if ( ! this->nfc.PICC_ReadCardSerial()) {   //Since a PICC placed get Serial and continue
+    return 0;
+  }
+  // ugly hack: fine for mifare classic (4 byte)
+  // also fine for our ultras (last 4 bytes ever the same)
+  // nfc.PrintHex(uid, uidLength);
+    id = (unsigned long)this->nfc.uid.uidByte[0]<<24;
+    id += (unsigned long)this->nfc.uid.uidByte[1]<<16;
+    id += (unsigned long)this->nfc.uid.uidByte[2]<<8;
+    id += (unsigned long)this->nfc.uid.uidByte[3];
+  this->nfc.PICC_HaltA(); // Stop reading
   return id;
 }

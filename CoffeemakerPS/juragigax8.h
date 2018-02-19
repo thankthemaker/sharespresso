@@ -1,15 +1,10 @@
-#include "Arduino.h";
-#include <SoftwareSerial.h>;
+#ifndef JURAGIGAX8_H
+#define JURAGIGAX8_H
 
-#ifndef SETTINGS_H_
- #include "settings.h"
-#endif
-#ifndef OLED_H_
-  #include "oled.h";
-#endif
-#ifndef BUZZER_H_
-  #include "buzzer.h";
-#endif
+#include "Arduino.h"
+#include <SoftwareSerial.h>
+#include "ICoffeeMaker.h"
+
 
 #ifndef JURA_RX_PIN
   #define JURA_RX_PIN 15
@@ -18,19 +13,12 @@
   #define JURA_TX_PIN 16
 #endif
 
-class JuraGigaX8 {
-    private:
-        OledDisplay* oled;
-        Buzzer* buzzer;
-
+class JuraGigaX8 : public ICoffeeMaker {
     public:
-        JuraGigaX8(OledDisplay& oled, Buzzer& buzzer);
-
-        void initCoffeemaker();
-        String fromCoffeemaker();
-        void toCoffeemaker(String outputString);
-        void servicetoggle(void);
-        void inkasso_off(void);
-        void inkasso_on(void);
+        // https://stackoverflow.com/questions/35413821/how-to-fix-this-array-used-as-initializer-error
+        // product codes send by coffeemakers "?PA<x>\r\n", just <x>
+        char products[11] = {'A', 'B', 'C', 'H', 'D', 'E', 'K', 'J', 'F', 'G', '\n'};
+        JuraGigaX8(IDisplay *oled, Buzzer *buzzer);
+        char* getProducts();
 };
-
+#endif
