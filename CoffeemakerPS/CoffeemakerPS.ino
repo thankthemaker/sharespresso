@@ -25,38 +25,19 @@
 // needed for conditional includes to work, don't ask why ;-)
 char trivialfix;
 
-#ifndef LOGGER_H_
-  #include "logging.h";
-#endif
-#ifndef SETTINGS_H_
- #include "settings.h"
-#endif
-#ifndef EEPROMCONFIG_H_
- #include "eepromconfig.h";
-#endif
-#include "juragigax8.h";
-#include "mqtt.h";
-#include "pn532nfc.h";
-#include "ble.h";
-#include "otaupdate.h";
-
-
-// options to include into project
-#define DEBUG 0 // some more logging
-// coffemaker model
-//#define X7 1 // x7/saphira
-#define S95 1
-
 #include <Wire.h>
-#include <SPI.h>
+#include "logging.h"
+#include "settings.h"
+#include "eepromconfig.h"
+#include "IDisplay.h"
+#include "INfcReader.h"
+#include "ICoffeeMaker.h"
+#include "awsIot.h"
+#include "mqtt.h"
+#include "ble.h"
+#include "otaupdate.h"
 
-// product codes send by coffeemakers "?PA<x>\r\n", just <x>
-#if defined(S95)
-char products[] = "EFABJIG";
-#endif
-#if defined(X7)
-char products[] = "ABCHDEKJFG";
-#endif
+#include "juragigax8.h"
 
 // general variables (used in loop)
 boolean buttonPress = false;
@@ -66,33 +47,36 @@ unsigned long buttonTime; // timer for button press
 boolean override = false;  // to override payment system by the voice-control/button-press app
 unsigned long RFIDcard = 0;
 int price=0;
+String productname="undefined";
 String last_product="";
 pricelist_t pricelist;
 cardlist_t cardlist;
 
-OledDisplay oled;
 MqttService mqttService;
-Buzzer buzzer;
-Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
-Pn532NfcReader nfcReader(nfc, oled, buzzer);
-JuraGigaX8 coffeemaker(oled, buzzer);
+Buzzer *buzzer = new Buzzer();
+IDisplay *oled = DisplayFactory::getInstance()->createDisplay();
+INfcReader *nfcReader = NfcReaderFactory::getInstance()->createNfcReader(oled, buzzer);
+//ICoffeeMaker *coffeemaker =  CoffeeMakerFactory::getInstance()->createCoffeeMaker(oled, buzzer);
+ICoffeeMaker *coffeemaker = new JuraGigaX8(oled, buzzer);
+
 BleConnection bleConnection;
 CoffeeLogger logger;
 EEPROMConfig eepromConfig;
 OTAUpdate update(oled);
+AwsIotClient iotClient;
 
 void setup() {
 #if defined(SERLOG) || defined(DEBUG)
   Serial.begin(9600);
 #endif
 #if defined(DEBUG)
-  logger.log("number of products: " + String(sizeof(products)));
+  logger.log("number of products: " + String(sizeof(coffeemaker->getProducts())));
 #endif
-  logger.log("initializing OLED");
-  oled.init();
+  logger.log("initializing Display");
+  oled->initDisplay();
   
-  oled.message_print(F("sharespresso"), F("starting up"), 0);
-  coffeemaker.initCoffeemaker();         // start serial communication at 9600bps
+  oled->message_print(F("sharespresso"), F("starting up"), 0);
+  coffeemaker->initCoffeemaker();         // start serial communication at 9600bps
 
   logger.log(F("initializing bluetooth module"));
   bleConnection.initBle();
@@ -101,40 +85,35 @@ void setup() {
 #if defined(DEBUG)
   logger.log(F("initializing rfid reader"));
 #endif
-  nfc.begin();
-  uint32_t versiondata = nfc.getFirmwareVersion();
-  if (! versiondata) {
-#if defined(DEBUG)
-    logger.log(F("didn't find PN53x board"));
-#endif
-  }
-  // configure board to read RFID tags and cards
-  nfc.SAMConfig();
-  nfc.setPassiveActivationRetries(0xfe);
+	SPI.begin();			// Init SPI bus, needed by RC522-Reader
+  nfcReader->initNfcReader();
 
   logger.log("reading pricelist from EEPROM");
   pricelist = eepromConfig.readPricelist();
-  for(int i=0; i<10; i++) {
-    String message = "price for product[" + String(i) + "]: " + String(pricelist.prices[i]);
-      logger.log("msg=" + message);
-  }
+//  for(int i=0; i<10; i++) {
+//    String message = "price for product[" + String(i) + "]: " + String(pricelist.prices[i]);
+//      logger.log("msg=" + message);
+//  }
 
   cardlist = eepromConfig.readCards();
-  for(int i=0; i<MAX_CARDS; i++) {
-    String message = "registered card[" + String(i) + "]: " + String(cardlist.cards[i].card);
-    logger.log(message);
-  }
+//  for(int i=0; i<MAX_CARDS; i++) {
+//    String message = "registered card[" + String(i) + "]: " + String(cardlist.cards[i].card);
+//    logger.log(message);
+//  }
 
   mqttService.setup_wifi();
   mqttService.initMqtt(mqttCallback);
-  oled.message_print(F("Ready to brew"), F(""), 2000);
+
+  iotClient.initAwsClient();
+
+  oled->message_print(F("Ready to brew"), F(""), 2000);
   // activate coffemaker connection and inkasso mode
-//  myCoffeemaker.listen();
-  coffeemaker.inkasso_on();
+  coffeemaker->inkasso_on();
 }
 
 void loop() {  
     mqttService.loopMqtt();
+    iotClient.loopAwsClient();
  
   // Check if there is a bluetooth connection and command
   // handle serial and bluetooth input
@@ -151,50 +130,28 @@ void loop() {
   }          
 
   // Get key pressed on coffeemaker
-  String message = coffeemaker.fromCoffeemaker();   // gets answers from coffeemaker 
+  String message = coffeemaker->fromCoffeemaker();   // gets answers from coffeemaker 
   if (message.length() > 0 && message != ""){
     logger.log("msg=" + message);
     if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
       buttonPress = true;
       buttonTime = millis();
       int product = 255;
-      for (int i = 0; i < sizeof(products); i++) {
-        if (message.charAt(3) == products[i]) {
+      for (int i = 0; i < sizeof(coffeemaker->getProducts()); i++) {
+        if (message.charAt(3) == coffeemaker->getProducts()[i]) {
           product = i;
           break;
         }
       }
       if ( product != 255) {
-        String productname;
-          switch (product) {
-#if defined(S95)
-            case 0: productname = F("Small cup"); break;
-            case 1: productname = F("2 small cups"); break;
-            case 2: productname = F("Large cup"); break;
-            case 3: productname = F("2 large cups"); break;
-            case 4: productname = F("Steam 2"); break;
-            case 5: productname = F("Steam 1"); break;
-            case 6: productname = F("Extra large cup"); break;
-#endif
-#if defined(X7)
-            case 0: productname = F("Cappuccino"); break;
-            case 1: productname = F("Espresso"); break;
-            case 2: productname = F("Espresso dopio"); break;
-            case 3: productname = F("Milchkaffee"); break;
-            case 4: productname = F("Kaffee"); break;
-            case 5: productname = F("Kaffee gross"); break;
-            case 6: productname = F("Dampf links"); break;
-            case 7: productname = F("Dampf rechts"); break;
-            case 8: productname = F("Portion Milch"); break;
-            case 9: productname = F("Caffee Latte"); break;
-#endif
-          }
+         productname = "undefined";
+         //TODO: produktnamen ermitteln
         price = pricelist.prices[product];
         last_product= String(message.charAt( 3))+ "/"+ String(product)+ " ";
-        oled.message_print(productname, logger.printCredit(price), 0);
+        oled->message_print(productname, logger.printCredit(price), 0);
       } 
       else {
-        oled.message_print(F("Error unknown"), F("product"), 2000);
+        oled->message_print(F("Error unknown"), F("product"), 2000);
         buttonPress = false;
       }
       // boss mode, he does not pay
@@ -209,11 +166,11 @@ void loop() {
       buttonPress = false;
       price = 0;
       last_product = "";
-      oled.message_clear();
+      oled->message_clear();
     }
   }
   if (buttonPress == true && override == true){
-    coffeemaker.toCoffeemaker("?ok\r\n");
+    coffeemaker->toCoffeemaker("?ok\r\n");
     buttonPress == false;
     override == false;
   }
@@ -221,14 +178,14 @@ void loop() {
   RFIDcard = 0;  
   actTime = millis(); 
   do {
-    RFIDcard = nfcReader.nfcidread();
+    RFIDcard = nfcReader->nfcidread();
     if (RFIDcard == MASTERCARD) {
-      coffeemaker.servicetoggle();
+      coffeemaker->servicetoggle();
       delay(60);
       RFIDcard= 0;
     }
     if (RFIDcard != 0) {
-      oled.message_clear();
+      oled->message_clear();
       break; 
     }           
   } 
@@ -242,28 +199,29 @@ void loop() {
         int credit = eepromConfig.readCredit(k*6+4);
         if(buttonPress == true){                 // button pressed on coffeemaker?
            if ((credit - price) > 0) {
-            oled.message_print(logger.print10digits(RFIDcard), logger.printCredit(credit), 0);
+            oled->message_print(logger.print10digits(RFIDcard), logger.printCredit(credit), 0);
             eepromConfig.updateCredit(k*6+4, ( credit- price));
-            coffeemaker.toCoffeemaker("?ok\r\n");            // prepare coffee
+            iotClient.sendmessage (logger.print10digits(RFIDcard), productname, price);   
+            coffeemaker->toCoffeemaker("?ok\r\n");            // prepare coffee
             buttonPress= false;
             price= 0;
             last_product= "";
           } 
           else {
-            buzzer.beep(2);
-            oled.message_print(logger.printCredit(credit), F("Not enough"), 2000); 
+            buzzer->beep(2);
+            oled->message_print(logger.printCredit(credit), F("Not enough"), 2000); 
           }
         } 
         else {                                // if no button was pressed on coffeemaker / check credit
-          oled.message_print(logger.printCredit(credit), F("Remaining credit"), 2000);
+          oled->message_print(logger.printCredit(credit), F("Remaining credit"), 2000);
         }
         i = MAX_CARDS;      // leave loop (after card has been identified)
       }      
     }
     if (k == MAX_CARDS){ 
       k=0; 
-      buzzer.beep(2);
-      oled.message_print(String(logger.print10digits(RFIDcard)),F("card unknown!"),2000);
+      buzzer->beep(2);
+      oled->message_print(String(logger.print10digits(RFIDcard)),F("card unknown!"),2000);
     }           
   }
 }
@@ -275,12 +233,12 @@ void executeCommand(String command) {
 #endif
     if( command == "RRR" ){          
       actTime = millis();
-      buzzer.beep(1);
-      oled.message_print(F("Registering"),F("new cards"),0);
+      buzzer->beep(1);
+      oled->message_print(F("Registering"),F("new cards"),0);
       mqttService.publish("Registering new cards");
-      nfcReader.registernewcards();
+      nfcReader->registernewcards();
       mqttService.publish("Registering ended");
-      oled.message_clear();
+      oled->message_clear();
     }
     // BT: Send RFID card numbers to app    
     if(command == "LLL"){  // 'L' for 'list' sends RFID card numbers to app   
@@ -307,10 +265,10 @@ void executeCommand(String command) {
       i--; // list picker index (app) starts at 1, while RFIDcards array starts at 0
       unsigned long card= cardlist.cards[i].card;
       int credit= eepromConfig.readCredit(i*6+4);      
-      oled.message_print(logger.print10digits(card), F("deleting"), 2000);    
+      oled->message_print(logger.print10digits(card), F("deleting"), 2000);    
       eepromConfig.deleteCard(i*6, 0);
       eepromConfig.deleteCredit(i*6+2, 0);
-      buzzer.beep(1);
+      buzzer->beep(1);
       mqttService.publish("Deleted card: " + String(card));
     }    
     // BT: Charge a card    
@@ -328,9 +286,9 @@ void executeCommand(String command) {
       int credit= eepromConfig.readCredit(i*6+4);
       credit+= j;
       eepromConfig.updateCredit(i*6+4, credit);
-      buzzer.beep(1);
+      buzzer->beep(1);
       unsigned long card=cardlist.cards[i].card;
-      oled.message_print(logger.print10digits(card),"+"+logger.printCredit(j),2000);    
+      oled->message_print(logger.print10digits(card),"+"+logger.printCredit(j),2000);    
        mqttService.publish("Charged card " + String(card) + ", new credit: " + logger.printCredit(j));
     } 
     // BT: Receives (updated) price list from app.  
@@ -355,8 +313,8 @@ void executeCommand(String command) {
         k++;
       }
       eepromConfig.updatePricelist(pricelist);
-      buzzer.beep(1);
-      oled.message_print(F("Pricelist"), F("updated!"), 2000);
+      buzzer->beep(1);
+      oled->message_print(F("Pricelist"), F("updated!"), 2000);
       mqttService.publish("Updated pricelist on device");
     }
     // BT: Sends price list to app. Product 1 to 10 (0-9), prices divided by commas plus standard value for new cards
@@ -383,23 +341,23 @@ void executeCommand(String command) {
     }
 
     if(command == "?M3"){
-      coffeemaker.inkasso_on();
+      coffeemaker->inkasso_on();
       mqttService.publish("Inkasso-mode turned ON");
     }
     if(command == "?M1"){
-      coffeemaker.inkasso_off();  
+      coffeemaker->inkasso_off();  
       mqttService.publish("Inkasso-mode turned OFF");
    }
     if(command == "FA:04"){        // small cup ordered via app
-      coffeemaker.toCoffeemaker("FA:04\r\n"); 
+      coffeemaker->toCoffeemaker("FA:04\r\n"); 
       override = true;
     }
     if(command == "FA:06"){        // large cup ordered via app
-      coffeemaker.toCoffeemaker("FA:06\r\n");  
+      coffeemaker->toCoffeemaker("FA:06\r\n");  
       override = true;
     }
     if(command == "FA:0C"){        // extra large cup ordered via app
-      coffeemaker.toCoffeemaker("FA:0C\r\n");  
+      coffeemaker->toCoffeemaker("FA:0C\r\n");  
       override = true;
     } 
  }

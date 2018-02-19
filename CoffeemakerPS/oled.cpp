@@ -4,7 +4,7 @@ SSD1306Brzo display(0x3c, OLED_SDA_PIN, OLED_SDC_PIN);
 
 OledDisplay::OledDisplay() {}
 
-void OledDisplay::init() {
+void OledDisplay::initDisplay() {
   display.init();
 
   display.flipScreenVertically();

@@ -1,12 +1,10 @@
+#ifndef EEPROMCONFIG_H_
+#define EEPROMCONFIG_H_
+
 #include "Arduino.h";
 #include <EEPROM.h>
 #include <WString.h>
-
-#define EEPROMCONFIG_H_
-
-#ifndef SETTINGS_H_
- #include "settings.h"
-#endif
+#include "settings.h"
 
 typedef struct {
     uint32_t card;
@@ -37,3 +35,4 @@ class EEPROMConfig {
         void deleteCard(int address, long card);
         void deleteCredit(int address, int credit);
 };
+#endif
