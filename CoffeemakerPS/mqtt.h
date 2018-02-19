@@ -1,10 +1,10 @@
+#ifndef MQTT_H
+#define MQTT_H
+
 #include "Arduino.h";
 #include <PubSubClient.h>;
 #include <ESP8266WiFi.h>;
-
-#ifndef SETTINGS_H_
- #include "settings.h"
-#endif
+#include "settings.h"
 
 #define MQTT_CALLBACK_SIGNATURE std::function<void(char*, uint8_t*, unsigned int)> callback
 
@@ -23,4 +23,4 @@ class MqttService {
         void mqttReconnect();
         void publish(String message);
 };
-
+#endif

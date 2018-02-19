@@ -1,13 +1,11 @@
+#ifndef LOGGER_H_
+#define LOGGER_H_
+
 #include "Arduino.h"
-#include <ESP8266WiFi.h>;
+#include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include <Syslog.h>   //https://github.com/arcao/Syslog
-
-#ifndef SETTINGS_H_
- #include "settings.h"
-#endif
-
-#define LOGGER_H_
+#include "settings.h"
 
 class CoffeeLogger {
   private:
@@ -23,4 +21,4 @@ class CoffeeLogger {
     String print10digits(unsigned long number);
     String printCredit(int credit); 
 };
-
+#endif

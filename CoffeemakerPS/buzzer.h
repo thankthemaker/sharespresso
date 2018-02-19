@@ -1,9 +1,9 @@
-#include "Arduino.h";
-#ifndef SETTINGS_H_
- #include "settings.h";
-#endif
-
+#ifndef BUZZER_H_
 #define BUZZER_H_
+
+#include "Arduino.h";
+#include "settings.h";
+
 
 #ifndef BUZPIN
  #define BUZPIN 0  // digital pin for buzzer
@@ -14,3 +14,4 @@ class Buzzer {
         Buzzer() {}
         void beep(byte number);
 };
+#endif

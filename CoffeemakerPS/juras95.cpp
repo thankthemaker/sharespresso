@@ -1,6 +1,6 @@
-#include "juragigax8.h";
+#include "juras95.h";
 
-JuraGigaX8::JuraGigaX8(IDisplay *oled, Buzzer *buzzer) : ICoffeeMaker(oled, buzzer) {
+JuraS95::JuraS95(IDisplay *oled, Buzzer *buzzer) : ICoffeeMaker(oled, buzzer) {
   /*
    productnames[0] = F("Cappuccino");
    productnames[1] = F("Espresso");
@@ -15,6 +15,6 @@ JuraGigaX8::JuraGigaX8(IDisplay *oled, Buzzer *buzzer) : ICoffeeMaker(oled, buzz
    */
 };
 
-char* JuraGigaX8::getProducts() {
+char* JuraS95::getProducts() {
   return products;
 };

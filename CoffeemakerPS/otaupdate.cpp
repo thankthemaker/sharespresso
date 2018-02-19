@@ -1,7 +1,7 @@
 #include "otaupdate.h"
 
-    OTAUpdate::OTAUpdate(OledDisplay& oled) {
-        this->oled = &oled;
+    OTAUpdate::OTAUpdate(IDisplay *oled) {
+        this->oled = oled;
     }
 
     void OTAUpdate::startUpdate() {
