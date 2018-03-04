@@ -5,13 +5,6 @@
 #include "IDisplay.h"
 #include "SSD1306Brzo.h" //OLED I2C
 
-#ifndef OLED_SDA_PIN
- OLED_RX_PIN 4
-#endif
-#ifndef OLED_SDC_PIN
- OLED_TX_PIN 5
-#endif
-
 class OledDisplay : public IDisplay {
     public:
         OledDisplay();

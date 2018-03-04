@@ -1,6 +1,6 @@
 #include "oled.h";
 
-SSD1306Brzo display(0x3c, OLED_SDA_PIN, OLED_SDC_PIN);
+SSD1306Brzo display(0x3c, OLED_SDA_PIN, OLED_SCL_PIN);
 
 OledDisplay::OledDisplay() {}
 
