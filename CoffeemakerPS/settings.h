@@ -5,21 +5,23 @@
 
  // Your WiFi credentials.
  // Set password to "" for open networks.
- #define WIFI_SSID           "<YOUR_SSID>"
- #define WIFI_PASSWORD       "<YOUR_PASSWORD>"
+ #define WIFI_SSID           "Tonysoft"
+ #define WIFI_PASSWORD       "6562415627520176"
+ //#define WIFI_SSID           "3Wireless-Modem-be2c"
+ //#define WIFI_PASSWORD       "41718166"
 
  // MQTT settings
  #define MQTT_SERVER         "mqtt.thank-the-maker.org"
  #define MQTT_PORT           1883
  #define MQTT_TOPIC_IN       "/coffeemaker/gigax8/toCoffeemaker"
  #define MQTT_TOPIC_OUT      "/coffeemaker/gigax8/fromCoffeemaker"
- #define MQTT_USERNAME       "<YOUR_USER>"
- #define MQTT_PASSWORD       "<YOUR_PASSWORD>"  
+ #define MQTT_USERNAME       "dgey"
+ #define MQTT_PASSWORD       "test"  
 
  //AWS IOT config, change these:
- #define AWS_ENDPOINT        "<YOUR_AWS_ENDPOINT>"
- #define AWS_KEY             "<YOUR_AWS_KEY>"
- #define AWS_SECRET          "<YOUR_AWS_SECRET>"
+ #define AWS_ENDPOINT        "a3dtjrh1oco8co.iot.us-west-2.amazonaws.com"
+ #define AWS_KEY             "AKIAJSN4NKYKS5FEQZ6Q"
+ #define AWS_SECRET          "7viHIrDKXQHCE0eTOtZ81HfirT9h6MRD1bUvQict"
  #define AWS_REGION          "us-west-2"
  #define AWS_TOPIC           "coffeemaker/coffee"
  #define AWS_PORT            443
@@ -27,31 +29,31 @@
  #define APP_NAME            "Sharepresso"
 
  // Logging setings
- #define SERLOG              1 // logging to serial port
+ #define SERLOG              // logging to serial port
 
  // Syslog settings
- #define SYSLOG              0
+ //#define SYSLOG
  #define SYSLOG_SERVER       "genas.fritz.box"
  #define SYSLOG_PORT         514
 
-#define DEBUG 0 // some more logging
+//#define DEBUG // some more logging
 
 // Choose coffeemaker
-#define GIGAX8 1 
-//#define X7 1 
-//#define S95 1
+#define GIGAX8
+//#define X7
+//#define S95
 
  // Choose IoT-Device Sparkfun or NodeMCU
- #define NODEMCU_1_0 1
- //#define SPARKFUN 1
+ #define NODEMCU_1_0
+ //#define SPARKFUN
 
  // Choose NFC-Reader Adafruit PN532 or RC522
- //#define PN532 1
- #define RC522 1
+ #define PN532
+ //#define RC522
 
  // Choose display type OLED or TFT
- //#define DISPLAY_OLED 1
- #define DISPLAY_TFT 1
+ #define DISPLAY_OLED
+ //#define DISPLAY_TFT
 
  // PIN definition Sparkfun ESP8266 Thing Dev
  #ifdef SPARKFUN
@@ -64,7 +66,7 @@
 
   #define BUZPIN              0
   #define OLED_SDA_PIN        4
-  #define OLED_SDC_PIN        5
+  #define OLED_SCL_PIN        5
   #define BLE_RX_PIN          7
   #define BLE_TX_PIN          8
   #define JURA_RX_PIN         15
@@ -87,26 +89,27 @@
   // offset for pricelist 512-11*2=490 on ESP8266 Sparkfun Thing Dev
   #define PRICELIST_ADDRESS_OFFSET     4073
 
-  #define BUZPIN              0  //D3
-  #define OLED_SDA_PIN        4  //D2
-  #define OLED_SDC_PIN        5  //D1
-  #define TFT_CS     D8
-  #define TFT_RST    D1  
-  #define TFT_DC     D2
-  //#define TFT_SCLK   D5   
-  //#define TFT_MOSI   D7  
-  #define BLE_RX_PIN          3  //RX
-  #define BLE_TX_PIN          1  //TX
-  #define JURA_RX_PIN         9  // SD2
-  #define JURA_TX_PIN         10 // SD3
+  #define BUZPIN              D4
+  #define OLED_SDA_PIN        D2
+  #define OLED_SCL_PIN        D1
+  #define TFT_CS              D4
+  #define TFT_RST             D3  
+  #define TFT_DC              D2
+  #define TFT_SCLK            D5   
+  #define TFT_MOSI            D7  
+  #define BLE_RX_PIN          9  //SD2
+  #define BLE_TX_PIN          10 //SD3
+  #define JURA_RX_PIN         3  //RX
+  #define JURA_TX_PIN         1  //TX
 
-  #define PN532_SCK            (14) //D5
-  #define PN532_MISO           (12) //D6
-  #define PN532_MOSI           (13) //D7
-  #define PN532_SS             (15) //D8
+  //#define PN532_SCK            D5
+  //#define PN532_MISO           D6
+  //#define PN532_MOSI           D7
+  #define PN532_SS             D0
   #define RC522_SS             D0
-  #define RC522_RST            D1
+  #define RC522_RST            D3
 
   #define BLE_ENABLED         0
  #endif
 #endif
+
