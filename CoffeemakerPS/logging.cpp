@@ -44,6 +44,12 @@ void CoffeeLogger::log(String msg) {
 }
 
 void CoffeeLogger::log(uint16_t pri, String msg) {
+#ifndef DEBUG 
+ if(pri == LOG_DEBUG) {
+   return;
+ }
+#endif
+
 #if defined(SERLOG)
   Serial.println(msg);
 #endif
