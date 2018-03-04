@@ -36,7 +36,6 @@ char trivialfix;
 #include "mqtt.h"
 #include "ble.h"
 #include "otaupdate.h"
-
 #include "juragigax8.h"
 
 // general variables (used in loop)
@@ -59,6 +58,7 @@ INfcReader *nfcReader = NfcReaderFactory::getInstance()->createNfcReader(oled, b
 //ICoffeeMaker *coffeemaker =  CoffeeMakerFactory::getInstance()->createCoffeeMaker(oled, buzzer);
 ICoffeeMaker *coffeemaker = new JuraGigaX8(oled, buzzer);
 
+NtpClient ntpClient;
 BleConnection bleConnection;
 CoffeeLogger logger;
 EEPROMConfig eepromConfig;
@@ -69,42 +69,31 @@ void setup() {
 #if defined(SERLOG) || defined(DEBUG)
   Serial.begin(9600);
 #endif
-#if defined(DEBUG)
-  logger.log("number of products: " + String(sizeof(coffeemaker->getProducts())));
-#endif
-  logger.log("initializing Display");
+  logger.log(LOG_DEBUG, "number of products: " + String(sizeof(coffeemaker->getProducts())));
+  logger.log(LOG_INFO, "initializing Display");
   oled->initDisplay();
   
   oled->message_print(F("sharespresso"), F("starting up"), 0);
-  coffeemaker->initCoffeemaker();         // start serial communication at 9600bps
+  coffeemaker->initCoffeemaker(); // start serial communication at 9600bps
 
-  logger.log(F("initializing bluetooth module"));
+  logger.log(LOG_INFO, "initializing bluetooth module");
   bleConnection.initBle();
 
   // initialized rfid lib
-#if defined(DEBUG)
-  logger.log(F("initializing rfid reader"));
-#endif
+  logger.log(LOG_INFO, "initializing rfid reader");
 	SPI.begin();			// Init SPI bus, needed by RC522-Reader
   nfcReader->initNfcReader();
 
-  logger.log("reading pricelist from EEPROM");
+  logger.log(LOG_INFO, "reading pricelist from EEPROM");
   pricelist = eepromConfig.readPricelist();
-//  for(int i=0; i<10; i++) {
-//    String message = "price for product[" + String(i) + "]: " + String(pricelist.prices[i]);
-//      logger.log("msg=" + message);
-//  }
-
   cardlist = eepromConfig.readCards();
-//  for(int i=0; i<MAX_CARDS; i++) {
-//    String message = "registered card[" + String(i) + "]: " + String(cardlist.cards[i].card);
-//    logger.log(message);
-//  }
+
+  dumpPricelistAndCards(pricelist, cardlist);
 
   mqttService.setup_wifi();
   mqttService.initMqtt(mqttCallback);
-
   iotClient.initAwsClient();
+  ntpClient.setupNtp();
 
   oled->message_print(F("Ready to brew"), F(""), 2000);
   // activate coffemaker connection and inkasso mode
@@ -197,12 +186,12 @@ void loop() {
       if (((RFIDcard) == (cardlist.cards[i].card)) && (RFIDcard != 0 )){
         k = i;
         int credit = eepromConfig.readCredit(k*6+4);
-        if(buttonPress == true){                 // button pressed on coffeemaker?
+        if(buttonPress == true){ // button pressed on coffeemaker?
            if ((credit - price) > 0) {
             oled->message_print(logger.print10digits(RFIDcard), logger.printCredit(credit), 0);
             eepromConfig.updateCredit(k*6+4, ( credit- price));
             iotClient.sendmessage (logger.print10digits(RFIDcard), productname, price);   
-            coffeemaker->toCoffeemaker("?ok\r\n");            // prepare coffee
+            coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
             buttonPress= false;
             price= 0;
             last_product= "";
@@ -212,10 +201,10 @@ void loop() {
             oled->message_print(logger.printCredit(credit), F("Not enough"), 2000); 
           }
         } 
-        else {                                // if no button was pressed on coffeemaker / check credit
+        else { // if no button was pressed on coffeemaker / check credit
           oled->message_print(logger.printCredit(credit), F("Remaining credit"), 2000);
         }
-        i = MAX_CARDS;      // leave loop (after card has been identified)
+        i = MAX_CARDS; // leave loop (after card has been identified)
       }      
     }
     if (k == MAX_CARDS){ 
@@ -237,6 +226,7 @@ void executeCommand(String command) {
       oled->message_print(F("Registering"),F("new cards"),0);
       mqttService.publish("Registering new cards");
       nfcReader->registernewcards();
+      cardlist = eepromConfig.readCards();
       mqttService.publish("Registering ended");
       oled->message_clear();
     }
@@ -362,6 +352,20 @@ void executeCommand(String command) {
     } 
  }
 
+void dumpPricelistAndCards(pricelist_t pricelist, cardlist_t cardlist) {
+#if defined(DEBUG)
+  for(int i=0; i<10; i++) {
+    String message = "price for product[" + String(i) + "]: " + String(pricelist.prices[i]);
+    logger.log(LOG_DEBUG, "msg=" + message);
+    yield(); // Enable ESP8266 to do background tasks and make Watchdog happy
+  }
+  for(int i=0; i<MAX_CARDS; i++) {
+    String message = "registered card[" + String(i) + "]: " + String(cardlist.cards[i].card);
+    logger.log(LOG_DEBUG, message);
+    yield(); // Enable ESP8266 to do background tasks and make Watchdog happy
+  }
+#endif
+}
 
 // On ESP822 platform this method has to stay in main sketch. This is because of
 // callback signature "std::function<void(char*, uint8_t*, unsigned int)> callback"

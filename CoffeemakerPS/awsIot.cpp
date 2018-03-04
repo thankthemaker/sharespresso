@@ -96,6 +96,7 @@ void AwsIotClient::sendmessage(const String cardId, const String product, const 
         StaticJsonBuffer<maxMQTTpackageSize> jsonBuffer;
         JsonObject& root = jsonBuffer.createObject();
         root["cardid"] = cardId;
+        root["timestamp"] = now();
         root["product"] = product;
         root["price"] = price;
 
