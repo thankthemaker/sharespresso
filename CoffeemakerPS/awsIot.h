@@ -28,6 +28,7 @@
 #include <ArduinoJson.h>
 
 #include "settings.h"
+#include "NtpClient.h"
 
 const int maxMQTTpackageSize = 512;
 const int maxMQTTMessageHandlers = 2;
