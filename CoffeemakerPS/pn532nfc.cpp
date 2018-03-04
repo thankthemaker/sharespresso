@@ -2,7 +2,7 @@
 
 SPISettings nfc_settings(SPI_CLOCK_DIV8, LSBFIRST, SPI_MODE0);
 
-Pn532NfcReader::Pn532NfcReader(IDisplay *oled, Buzzer *buzzer) : nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS){
+Pn532NfcReader::Pn532NfcReader(IDisplay *oled, Buzzer *buzzer) : nfc(PN532_SS){
   this->oled = oled;
   this->buzzer = buzzer;
 };
@@ -30,7 +30,7 @@ void Pn532NfcReader::registernewcards() {
 
   do {
     RFIDcard = 0;
-    delay(100); // Make our ESP8266 Watchdog happy
+    delay(100); // Enable ESP8266 to do background tasks and make Watchdog happy
       do {
       RFIDcard = this->nfcidread();
       if (RFIDcard != 0) {
