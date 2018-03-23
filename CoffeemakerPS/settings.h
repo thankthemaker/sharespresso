@@ -5,23 +5,21 @@
 
  // Your WiFi credentials.
  // Set password to "" for open networks.
- #define WIFI_SSID           "Tonysoft"
- #define WIFI_PASSWORD       "6562415627520176"
- //#define WIFI_SSID           "3Wireless-Modem-be2c"
- //#define WIFI_PASSWORD       "41718166"
+ #define WIFI_SSID           "***"
+ #define WIFI_PASSWORD       "***"
 
  // MQTT settings
  #define MQTT_SERVER         "mqtt.thank-the-maker.org"
  #define MQTT_PORT           1883
  #define MQTT_TOPIC_IN       "/coffeemaker/gigax8/toCoffeemaker"
  #define MQTT_TOPIC_OUT      "/coffeemaker/gigax8/fromCoffeemaker"
- #define MQTT_USERNAME       "dgey"
- #define MQTT_PASSWORD       "test"  
+ #define MQTT_USERNAME       "***"
+ #define MQTT_PASSWORD       "***"  
 
  //AWS IOT config, change these:
- #define AWS_ENDPOINT        "a3dtjrh1oco8co.iot.us-west-2.amazonaws.com"
- #define AWS_KEY             "AKIAJSN4NKYKS5FEQZ6Q"
- #define AWS_SECRET          "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"
+ #define AWS_ENDPOINT        "***"
+ #define AWS_KEY             "***"
+ #define AWS_SECRET          "***"
  #define AWS_REGION          "us-west-2"
  #define AWS_TOPIC           "coffeemaker/coffee"
  #define AWS_PORT            443
