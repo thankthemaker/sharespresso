@@ -1,3 +1,4 @@
+
 /* 
  IoT-Sharespresso by Thank-The-Maker.org
  
@@ -26,6 +27,7 @@
 char trivialfix;
 
 #include <Wire.h>
+#include <map>
 #include "logging.h"
 #include "settings.h"
 #include "eepromconfig.h"
@@ -47,7 +49,6 @@ boolean override = false;  // to override payment system by the voice-control/bu
 unsigned long RFIDcard = 0;
 int price=0;
 String productname="undefined";
-String last_product="";
 pricelist_t pricelist;
 cardlist_t cardlist;
 
@@ -69,7 +70,7 @@ void setup() {
 #if defined(SERLOG) || defined(DEBUG)
   Serial.begin(9600);
 #endif
-  logger.log(LOG_DEBUG, "number of products: " + String(sizeof(coffeemaker->getProducts())));
+  logger.log(LOG_DEBUG, "number of products: " + String(coffeemaker->getProducts().size()));
   logger.log(LOG_INFO, "initializing Display");
   oled->initDisplay();
   
@@ -84,7 +85,7 @@ void setup() {
 	SPI.begin();			// Init SPI bus, needed by RC522-Reader
   nfcReader->initNfcReader();
 
-  logger.log(LOG_INFO, "reading pricelist from EEPROM");
+  logger.log(LOG_INFO, "reading pricelist and cards from EEPROM");
   pricelist = eepromConfig.readPricelist();
   cardlist = eepromConfig.readCards();
 
@@ -125,24 +126,18 @@ void loop() {
     if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
       buttonPress = true;
       buttonTime = millis();
-      int product = 255;
-      for (int i = 0; i < sizeof(coffeemaker->getProducts()); i++) {
-        if (message.charAt(3) == coffeemaker->getProducts()[i]) {
-          product = i;
-          break;
-        }
-      }
-      if ( product != 255) {
-         productname = "undefined";
-         //TODO: produktnamen ermitteln
-        price = pricelist.prices[product];
-        last_product= String(message.charAt( 3))+ "/"+ String(product)+ " ";
-        oled->message_print(productname, logger.printCredit(price), 0);
-      } 
-      else {
+
+      std::map<char,String>::iterator it = coffeemaker->getProducts().find(message.charAt(3));
+      if(it == coffeemaker->getProducts().end()) {
+        // Key not found
         oled->message_print(F("Error unknown"), F("product"), 2000);
-        buttonPress = false;
+        buttonPress = false;   
+      } else {
+        // Key found -- the corresponding item is in:
+        productname = it->second;
       }
+      price = pricelist.prices[coffeemaker->getIndexForProduct(message.charAt(3))];
+      oled->message_print(productname, logger.printCredit(price), 0);
       // boss mode, he does not pay
       if (override == true){
         price = 0;
@@ -154,7 +149,6 @@ void loop() {
     if (millis()-buttonTime > 5000){  
       buttonPress = false;
       price = 0;
-      last_product = "";
       oled->message_clear();
     }
   }
@@ -194,7 +188,6 @@ void loop() {
             coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
             buttonPress= false;
             price= 0;
-            last_product= "";
           } 
           else {
             buzzer->beep(2);

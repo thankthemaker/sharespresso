@@ -115,13 +115,22 @@ void ICoffeeMaker::inkasso_off(void){
   }
 }
 
+std::map <char, String> ICoffeeMaker::getProducts() {
+  return products;
+}
+
+int ICoffeeMaker::getIndexForProduct(char productCode) {
+  String codeToIndex = "ABCDEFGHJ";
+  int index = codeToIndex.indexOf(productCode);
+  return index >= 0 ? index : 0;
+}
+
 CoffeeMakerFactory* CoffeeMakerFactory::instance = 0;
 
 CoffeeMakerFactory::CoffeeMakerFactory() {}
 
 CoffeeMakerFactory* CoffeeMakerFactory::getInstance() {
-    if (instance == 0)
-    {
+    if (instance == 0){
         instance = new CoffeeMakerFactory();
     }
 

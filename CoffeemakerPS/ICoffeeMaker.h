@@ -2,15 +2,17 @@
 #define ICOFFEEMAKER_H_
 
 #include "Arduino.h"
+#include <map>
 #include "settings.h"
 #include "IDisplay.h"
 #include "buzzer.h"
 
 class ICoffeeMaker {
     public:
-        String productnames[20]; 
         IDisplay *oled;
         Buzzer *buzzer;
+        // product codes send by coffeemakers "?PA<x>\r\n", just <x>    
+        std::map <char, String> products;
 
         ICoffeeMaker(IDisplay *oled, Buzzer *buzzer);
 
@@ -21,8 +23,8 @@ class ICoffeeMaker {
         void inkasso_off(void);
         void inkasso_on(void);
 
-        // pure virtual (abstract) method definitions
-        virtual char*  getProducts() = 0;
+        std::map <char, String>  getProducts();
+        int getIndexForProduct(char productCode);
 };
 
 class CoffeeMakerFactory {
