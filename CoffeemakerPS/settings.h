@@ -5,21 +5,23 @@
 
  // Your WiFi credentials.
  // Set password to "" for open networks.
- #define WIFI_SSID           "****"
- #define WIFI_PASSWORD       "****"
+ #define WIFI_SSID           "***REMOVED***"
+ #define WIFI_PASSWORD       "***REMOVED***"
+ //#define WIFI_SSID           "3***REMOVED***"
+ //#define WIFI_PASSWORD       "***REMOVED***"
 
  // MQTT settings
  #define MQTT_SERVER         "mqtt.thank-the-maker.org"
  #define MQTT_PORT           1883
  #define MQTT_TOPIC_IN       "/coffeemaker/gigax8/toCoffeemaker"
  #define MQTT_TOPIC_OUT      "/coffeemaker/gigax8/fromCoffeemaker"
- #define MQTT_USERNAME       "****"
- #define MQTT_PASSWORD       "****"  
+ #define MQTT_USERNAME       "dgey"
+ #define MQTT_PASSWORD       "test"  
 
  //AWS IOT config, change these:
- #define AWS_ENDPOINT        "****"
- #define AWS_KEY             "****"
- #define AWS_SECRET          "****"
+ #define AWS_ENDPOINT        "***REMOVED***"
+ #define AWS_KEY             "***REMOVED***"
+ #define AWS_SECRET          "***REMOVED***"
  #define AWS_REGION          "us-west-2"
  #define AWS_TOPIC           "coffeemaker/coffee"
  #define AWS_PORT            443
@@ -34,6 +36,8 @@
  #define SYSLOG_SERVER       "genas.fritz.box"
  #define SYSLOG_PORT         514
 
+#define JOURNAL
+
 //#define DEBUG // some more logging
 
 // Choose coffeemaker
@@ -46,12 +50,12 @@
  //#define SPARKFUN
 
  // Choose NFC-Reader Adafruit PN532 or RC522
- #define PN532
- //#define RC522
+ //#define PN532
+ #define RC522
 
  // Choose display type OLED or TFT
- #define DISPLAY_OLED
- //#define DISPLAY_TFT
+ //#define DISPLAY_OLED
+ #define DISPLAY_TFT
 
  // PIN definition Sparkfun ESP8266 Thing Dev
  #ifdef SPARKFUN
@@ -75,6 +79,8 @@
   #define PN532_MISO          (12)
   #define PN532_MOSI          (13)
 
+  #define SD_CARD_CS          xx
+
   #define BLE_ENABLED         1
  #endif
 
@@ -87,26 +93,37 @@
   // offset for pricelist 512-11*2=490 on ESP8266 Sparkfun Thing Dev
   #define PRICELIST_ADDRESS_OFFSET     4073
 
-  #define BUZPIN              D4
+  #define BUZPIN              3 // RX
   #define OLED_SDA_PIN        D2
   #define OLED_SCL_PIN        D1
-  #define TFT_CS              D4
-  #define TFT_RST             D3  
-  #define TFT_DC              D2
+  #define TFT_LED             1 //TX
+  #define TFT_CS              D1
+  #define TFT_RST             D2  
+  #define TFT_DC              D3
   #define TFT_SCLK            D5   
   #define TFT_MOSI            D7  
-  #define BLE_RX_PIN          9  //SD2
-  #define BLE_TX_PIN          10 //SD3
-  #define JURA_RX_PIN         3  //RX
-  #define JURA_TX_PIN         1  //TX
+#ifdef BLE_ENABLED
+  #define BLE_RX_PIN          3
+  #define BLE_TX_PIN          1
+#endif
+  #define JURA_RX_PIN         D4  //RX
+  #define JURA_TX_PIN         D3  //TX
 
-  //#define PN532_SCK            D5
-  //#define PN532_MISO           D6
-  //#define PN532_MOSI           D7
+//#ifdef PN532
+  #define PN532_SCK            D5
+  #define PN532_MISO           D6
+  #define PN532_MOSI           D7
   #define PN532_SS             D0
-  #define RC522_SS             D0
-  #define RC522_RST            D3
+//#endif
+//#ifdef RC522
+  #define RC522_SS             9  //SD2
+  #define RC522_RST            10 //SD3
+//#endif
+
+  #define SD_CARD_CS          D8
 
   #define BLE_ENABLED         0
  #endif
 #endif
+
+
