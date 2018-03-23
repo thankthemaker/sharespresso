@@ -20,8 +20,8 @@
 
  //AWS IOT config, change these:
  #define AWS_ENDPOINT        "***REMOVED***"
- #define AWS_KEY             "***REMOVED***"
- #define AWS_SECRET          "***REMOVED***"
+ #define AWS_KEY             "AKIAJSN4NKYKS5FEQZ6Q"
+ #define AWS_SECRET          "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"
  #define AWS_REGION          "us-west-2"
  #define AWS_TOPIC           "coffeemaker/coffee"
  #define AWS_PORT            443
