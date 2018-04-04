@@ -39,6 +39,7 @@ char trivialfix;
 #include "ble.h"
 #include "otaupdate.h"
 #include "juragigax8.h"
+#include "chucknorris.h"
 
 // general variables (used in loop)
 boolean buttonPress = false;
@@ -58,6 +59,7 @@ IDisplay *oled = DisplayFactory::getInstance()->createDisplay();
 INfcReader *nfcReader = NfcReaderFactory::getInstance()->createNfcReader(oled, buzzer);
 //ICoffeeMaker *coffeemaker =  CoffeeMakerFactory::getInstance()->createCoffeeMaker(oled, buzzer);
 ICoffeeMaker *coffeemaker = new JuraGigaX8(oled, buzzer);
+Chucknorris chucknorris;
 
 NtpClient ntpClient;
 BleConnection bleConnection;
@@ -188,6 +190,8 @@ void loop() {
             coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
             buttonPress= false;
             price= 0;
+            delay(2000);
+            oled->message_print_scroll(chucknorris.getNextChucknorrisFact());
           } 
           else {
             buzzer->beep(2);

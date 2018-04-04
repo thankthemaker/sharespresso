@@ -35,6 +35,30 @@ void OledDisplay::message_print(String msg1, String msg2, int wait) {
   }
 }
 
+void OledDisplay::message_print_scroll(String msg) {
+  display.setFont(ArialMT_Plain_16);
+  // ArialMT_Plain_16 = 19px
+  int fontsize = 19;
+  int displaywidth = 128;
+  int displayheight = 64;
+
+  int stringwidth = display.getStringWidth(msg);
+  
+  // cannot calculate exact lines 
+  // -> add three lines for linewrap-puffer
+  int lines = (stringwidth / displaywidth) + 3;
+  display.setTextAlignment(TEXT_ALIGN_LEFT);
+
+  for (int i=128; i>-(lines * fontsize); i--){
+    display.clear();
+    display.drawStringMaxWidth(0, i, 128, msg);  
+    display.display();
+    // scrollspeed
+    delay(50);
+  }
+  delay(1);
+}
+
 void OledDisplay::message_clear() {
   display.clear();
 }
