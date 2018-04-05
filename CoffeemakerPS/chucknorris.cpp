@@ -1,7 +1,6 @@
 #include "chucknorris.h"
 #include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>
-//#include <SSD1306.h>
 
 // Number of facts to be cached
 const int factscount = 50;

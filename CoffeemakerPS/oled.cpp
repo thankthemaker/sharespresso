@@ -44,8 +44,10 @@ void OledDisplay::message_print_scroll(String msg) {
 
   int stringwidth = display.getStringWidth(msg);
   
-  // cannot calculate exact lines 
-  // -> add three lines for linewrap-puffer
+  // cannot calculate exact textlines because of word-wraps 
+  // -> add three lines for offset.
+  // change this if you have an idea how to calculate exact textlines 
+  // from a given msg. 
   int lines = (stringwidth / displaywidth) + 3;
   display.setTextAlignment(TEXT_ALIGN_LEFT);
 
