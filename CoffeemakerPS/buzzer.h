@@ -11,7 +11,7 @@
 
 class Buzzer {
     public:
-        Buzzer() {}
+        Buzzer();
         void beep(byte number);
 };
 #endif

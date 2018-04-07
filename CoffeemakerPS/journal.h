@@ -11,5 +11,6 @@ class Journal {
 
     void initJournal();
     void writeJournal(String timestamp, String cardId, String product, String price);
+    String exportJournal();
 };
 #endif

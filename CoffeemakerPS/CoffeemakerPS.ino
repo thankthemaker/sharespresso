@@ -39,6 +39,7 @@ char trivialfix;
 #include "ble.h"
 #include "otaupdate.h"
 #include "juragigax8.h"
+#include "journal.h"
 
 // general variables (used in loop)
 boolean buttonPress = false;
@@ -52,6 +53,7 @@ String productname="undefined";
 pricelist_t pricelist;
 cardlist_t cardlist;
 
+Journal journal;
 MqttService mqttService;
 Buzzer *buzzer = new Buzzer();
 IDisplay *oled = DisplayFactory::getInstance()->createDisplay();
@@ -70,11 +72,13 @@ void setup() {
 #if defined(SERLOG) || defined(DEBUG)
   Serial.begin(9600);
 #endif
+  journal.initJournal();
   logger.log(LOG_DEBUG, "number of products: " + String(coffeemaker->getProducts().size()));
   logger.log(LOG_INFO, "initializing Display");
   oled->initDisplay();
   
-  oled->message_print(F("sharespresso"), F("starting up"), 0);
+  oled->message_print(F("sharespresso"), F("starting up"), 1500);
+  oled->print_logo();
   coffeemaker->initCoffeemaker(); // start serial communication at 9600bps
 
   logger.log(LOG_INFO, "initializing bluetooth module");
@@ -185,6 +189,7 @@ void loop() {
             oled->message_print(logger.print10digits(RFIDcard), logger.printCredit(credit), 0);
             eepromConfig.updateCredit(k*6+4, ( credit- price));
             iotClient.sendmessage (logger.print10digits(RFIDcard), productname, price);   
+//            journal.writeJournal(String(millis()), logger.print10digits(RFIDcard), productname, price);
             coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
             buttonPress= false;
             price= 0;
@@ -321,6 +326,11 @@ void executeCommand(String command) {
     if(command.startsWith("UPDATE") == true) {
       mqttService.publish("Firmwareupdate requested");
       update.startUpdate();
+    }
+
+    if(command.startsWith("RESTART") == true) {
+      mqttService.publish("Gerät wird neu gestartet");
+      ESP.restart();
     }
 
     if(command == "?M3"){
