@@ -1,5 +1,7 @@
 #include "journal.h"
 
+Journal::Journal() {}
+
 void Journal::initJournal() {
   Serial.print("Initializing SD card...");
 
@@ -25,12 +27,16 @@ void Journal::writeJournal(String timestamp, String cardId, String product, Stri
     dataFile.println(data);
     dataFile.close();
     // print to the serial port too:
-    Serial.println(data);
+//    Serial.println(data);
   }
   // if the file isn't open, pop up an error:
   else {
     Serial.println("error opening journal.csv");
   }
+}
+
+String Journal::exportJournal() {
+  return "";
 }
 
 
