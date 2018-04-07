@@ -1,5 +1,9 @@
 #include "buzzer.h";
 
+Buzzer::Buzzer() {
+  noTone(BUZPIN);
+}
+
 void Buzzer::beep(byte number){
   int duration = 200;
   switch (number) {
@@ -29,4 +33,5 @@ void Buzzer::beep(byte number){
       }
     }  
   }
+  noTone(BUZPIN);
 }

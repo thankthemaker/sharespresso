@@ -15,6 +15,8 @@ void OledDisplay::initDisplay() {
   display.display(); 
 }
 
+void print_logo() {}
+
 void OledDisplay::message_print(String msg1, String msg2, int wait) {
 #if defined(SERLOG)
   if (msg1 != "") { Serial.print(msg1 + " "); }
