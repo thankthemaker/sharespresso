@@ -5,23 +5,21 @@
 
  // Your WiFi credentials.
  // Set password to "" for open networks.
- #define WIFI_SSID           "***REMOVED***"
- #define WIFI_PASSWORD       "***REMOVED***"
- //#define WIFI_SSID           "3***REMOVED***"
- //#define WIFI_PASSWORD       "***REMOVED***"
+ #define WIFI_SSID           "***"
+ #define WIFI_PASSWORD       "***"
 
  // MQTT settings
  #define MQTT_SERVER         "mqtt.thank-the-maker.org"
  #define MQTT_PORT           1883
  #define MQTT_TOPIC_IN       "/coffeemaker/gigax8/toCoffeemaker"
  #define MQTT_TOPIC_OUT      "/coffeemaker/gigax8/fromCoffeemaker"
- #define MQTT_USERNAME       "dgey"
- #define MQTT_PASSWORD       "test"  
+ #define MQTT_USERNAME       "***"
+ #define MQTT_PASSWORD       "***"  
 
  //AWS IOT config, change these:
- #define AWS_ENDPOINT        "***REMOVED***"
- #define AWS_KEY             "***REMOVED***"
- #define AWS_SECRET          "***REMOVED***"
+ #define AWS_ENDPOINT        "***"
+ #define AWS_KEY             "***"
+ #define AWS_SECRET          "***"
  #define AWS_REGION          "us-west-2"
  #define AWS_TOPIC           "coffeemaker/coffee"
  #define AWS_PORT            443
@@ -63,7 +61,7 @@
   #define EEPROM_SIZE_BYTES   512
   // number of cards, max is (512-11*2)/6=81 on ESP8266 Sparkfun Thing Dev
   #define MAX_CARDS           60  // only 60 cards to keep some space reserved  
-  // offset for pricelist 512-11*2=490 on ESP8266 Sparkfun Thing Dev
+ // offset for pricelist 512-11*2=490 on ESP8266 Sparkfun Thing Dev
   #define PRICELIST_ADDRESS_OFFSET     489
 
   #define BUZPIN              0
