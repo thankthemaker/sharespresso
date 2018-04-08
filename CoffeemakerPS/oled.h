@@ -12,6 +12,7 @@ class OledDisplay : public IDisplay {
         void initDisplay();
         void print_logo();
         void message_print(String msg1, String msg2, int wait);
+        void message_print_scroll(String msg);
         void message_clear();
 };
 #endif

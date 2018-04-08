@@ -1,14 +1,14 @@
 #include "juragigax8.h";
 
 JuraGigaX8::JuraGigaX8(IDisplay *oled, Buzzer *buzzer) : ICoffeeMaker(oled, buzzer) {
-  products['A'] = "Espresso";
-  products['B'] = "Hot Water";
-  products['C'] = "Hot Water";
-  products['D'] = "Hot Water";
-  products['E'] = "Hot Water";
-  products['F'] = "Hot Water";
-  products['G'] = "Latte Machiatto";
-  products['H'] = "Hot Water";
+  products['A'] = "Americano";
+  products['B'] = "Kaffee groß";
+  products['C'] = "Espresso";
+  products['D'] = "Heißwasser";
+  products['E'] = "Cappuccino groß";
+  products['F'] = "Kaffee";
+  products['G'] = "Milchkaffee";
+  products['H'] = "Latte Machiatto";
   
   products['J'] = "Sonstiges";
 };
