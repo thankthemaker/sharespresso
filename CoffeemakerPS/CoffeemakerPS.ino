@@ -40,6 +40,7 @@ char trivialfix;
 #include "otaupdate.h"
 #include "juragigax8.h"
 #include "journal.h"
+#include "chucknorris.h"
 
 // general variables (used in loop)
 boolean buttonPress = false;
@@ -60,6 +61,7 @@ IDisplay *oled = DisplayFactory::getInstance()->createDisplay();
 INfcReader *nfcReader = NfcReaderFactory::getInstance()->createNfcReader(oled, buzzer);
 //ICoffeeMaker *coffeemaker =  CoffeeMakerFactory::getInstance()->createCoffeeMaker(oled, buzzer);
 ICoffeeMaker *coffeemaker = new JuraGigaX8(oled, buzzer);
+Chucknorris chucknorris;
 
 NtpClient ntpClient;
 BleConnection bleConnection;
@@ -184,15 +186,17 @@ void loop() {
       if (((RFIDcard) == (cardlist.cards[i].card)) && (RFIDcard != 0 )){
         k = i;
         int credit = eepromConfig.readCredit(k*6+4);
-        if(buttonPress == true){ // button pressed on coffeemaker?
+        if(buttonPress == true) { // button pressed on coffeemaker?
            if ((credit - price) > 0) {
             oled->message_print(logger.print10digits(RFIDcard), logger.printCredit(credit), 0);
             eepromConfig.updateCredit(k*6+4, ( credit- price));
             iotClient.sendmessage (logger.print10digits(RFIDcard), productname, price);   
-//            journal.writeJournal(String(millis()), logger.print10digits(RFIDcard), productname, price);
+            journal.writeJournal(String(millis()), logger.print10digits(RFIDcard), productname, price);
             coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
             buttonPress= false;
             price= 0;
+            delay(2000);
+            oled->message_print_scroll(chucknorris.getNextChucknorrisFact());
           } 
           else {
             buzzer->beep(2);
