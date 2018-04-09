@@ -191,12 +191,12 @@ void loop() {
             oled->message_print(logger.print10digits(RFIDcard), logger.printCredit(credit), 0);
             eepromConfig.updateCredit(k*6+4, ( credit- price));
             iotClient.sendmessage (logger.print10digits(RFIDcard), productname, price);   
-            journal.writeJournal(String(millis()), logger.print10digits(RFIDcard), productname, price);
+            journal.writeJournal(String(now()), logger.print10digits(RFIDcard), productname, String(price));
             coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
             buttonPress= false;
             price= 0;
-            delay(2000);
-            oled->message_print_scroll(chucknorris.getNextChucknorrisFact());
+ //           delay(2000);
+ //           oled->message_print_scroll(chucknorris.getNextChucknorrisFact());
           } 
           else {
             buzzer->beep(2);
@@ -335,6 +335,10 @@ void executeCommand(String command) {
     if(command.startsWith("RESTART") == true) {
       mqttService.publish("Gerät wird neu gestartet");
       ESP.restart();
+    }
+
+    if(command.startsWith("JOURNAL") == true) {
+      mqttService.publish(journal.exportJournal());
     }
 
     if(command == "?M3"){

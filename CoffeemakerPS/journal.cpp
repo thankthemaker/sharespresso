@@ -36,7 +36,19 @@ void Journal::writeJournal(String timestamp, String cardId, String product, Stri
 }
 
 String Journal::exportJournal() {
-  return "";
+  String data = "";
+  File dataFile = SD.open("journal.csv", FILE_READ);
+  // if the file is available, read it:
+  if (dataFile) {
+        // read from the file until there's nothing else in it:
+    while (dataFile.available()) {
+      data = data + dataFile.readStringUntil('\n');
+    }
+    dataFile.close();
+  } else {
+    Serial.println("error opening journal.csv");
+  }
+  return data;
 }
 
 
