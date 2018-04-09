@@ -16,7 +16,7 @@ Chucknorris :: Chucknorris() {}
 void prefetchFacts(int amount) {
   Serial.println("Prefetch facts");
   HTTPClient http;
-  http.setTimeout(3000);
+  http.setTimeout(5000);
   http.begin("http://api.icndb.com/jokes/random/" + String(amount) + "?escape=javascript&limitTo=[nerdy]");
   int httpCode = http.GET();
 
@@ -31,10 +31,12 @@ void prefetchFacts(int amount) {
           String fact = factsjson[i]["joke"].as<String>();
           facts[i] = fact;
         }
+      } else {
+        Serial.printf("[HTTP] GET... failed, code: %s", httpCode;
       }
     
   } else {
-    Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+    Serial.printf("[HTTP] GET... failed, error: %s", http.errorToString(httpCode).c_str());
   }
   http.end();
 }
