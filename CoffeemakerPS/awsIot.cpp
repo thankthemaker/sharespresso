@@ -1,8 +1,6 @@
 #include "awsIot.h";
 
-//callback to handle mqtt messages
-void messageArrived(MQTT::MessageData& md)
-{
+void mqttCallback(MQTT::MessageData& md) {
   MQTT::Message &message = md.message;
 
   Serial.print("Message arrived: qos ");
@@ -82,7 +80,7 @@ bool AwsIotClient::connect () {
 //subscribe to a mqtt topic
 void AwsIotClient::subscribe () {
    //subscript to a topic
-    int rc = client->subscribe(AWS_TOPIC, MQTT::QOS0, messageArrived);
+    int rc = client->subscribe(TOPIC_IN, MQTT::QOS0, mqttCallback);
     if (rc != 0) {
       Serial.print("rc from MQTT subscribe is ");
       Serial.println(rc);
@@ -103,7 +101,7 @@ void AwsIotClient::sendmessage(const String cardId, const String product, const 
         
         std::unique_ptr<char []> buffer(new char[maxMQTTpackageSize]());
         root.printTo(buffer.get(), maxMQTTpackageSize);
-        this->publish_to_topic(AWS_TOPIC, buffer.get());
+        this->publish_to_topic(TOPIC_COFFEE, buffer.get());
 }
 
 void AwsIotClient::publish_to_topic(const char* topic, const String& message) {
@@ -117,7 +115,7 @@ void AwsIotClient::publish_to_topic(const char* topic, const String& message) {
         mqtt_message.payloadlen = strlen(buf.get())+1;
         client->publish(topic, mqtt_message); 
 }
-void AwsIotClient::initAwsClient() {
+void AwsIotClient::init(MQTT_CALLBACK_SIGNATURE) {
     //fill AWS parameters    
     awsWSclient.setAWSRegion(AWS_REGION);
     awsWSclient.setAWSDomain(AWS_ENDPOINT);
@@ -130,7 +128,7 @@ void AwsIotClient::initAwsClient() {
     }
 }
 
-void AwsIotClient::loopAwsClient() {
+void AwsIotClient::loop() {
   //keep the mqtt up and running
   if (awsWSclient.connected ()) {    
       client->yield();
@@ -141,3 +139,9 @@ void AwsIotClient::loopAwsClient() {
     }
   }
 }
+
+void AwsIotClient::reconnect() {};
+
+void AwsIotClient::publish(String message) {
+        this->publish_to_topic(TOPIC_OUT, message);
+ };

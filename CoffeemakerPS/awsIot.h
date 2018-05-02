@@ -28,12 +28,13 @@
 #include <ArduinoJson.h>
 
 #include "settings.h"
+#include "IMessageBroker.h"
 #include "NtpClient.h"
 
 const int maxMQTTpackageSize = 512;
 const int maxMQTTMessageHandlers = 2;
 
-class AwsIotClient {
+class AwsIotClient : public IMessageBroker {
   private:
     AWSWebSocketClient awsWSclient;
     IPStack ipstack;
@@ -47,10 +48,12 @@ class AwsIotClient {
 
   public:
     AwsIotClient();
-    void initAwsClient();
-    void loopAwsClient();
+    void init(MQTT_CALLBACK_SIGNATURE);
+    void loop();
+    void reconnect();
     char* generateClientID ();
     bool connect ();
+    void publish(String message);
     void subscribe ();
     void sendmessage(const String cardId, const String product, const int price); 
 };
