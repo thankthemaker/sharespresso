@@ -31,16 +31,20 @@ char trivialfix;
 #include "logging.h"
 #include "settings.h"
 #include "eepromconfig.h"
+#include "wifi.h"
+#include "NtpClient.h"
 #include "IDisplay.h"
 #include "INfcReader.h"
 #include "ICoffeeMaker.h"
-#include "awsIot.h"
-#include "mqtt.h"
+#include "IMessageBroker.h"
 #include "ble.h"
 #include "otaupdate.h"
 #include "juragigax8.h"
 #include "journal.h"
 #include "chucknorris.h"
+
+#include <MQTTClient.h>
+
 
 // general variables (used in loop)
 boolean buttonPress = false;
@@ -54,9 +58,11 @@ String productname="undefined";
 pricelist_t pricelist;
 cardlist_t cardlist;
 
+FP<void,String>fp;
 Journal journal;
-MqttService mqttService;
+Wifi wifi;
 Buzzer *buzzer = new Buzzer();
+IMessageBroker *messageBroker = MessageBrokerFactory::getInstance()->createMessageBroker();
 IDisplay *oled = DisplayFactory::getInstance()->createDisplay();
 INfcReader *nfcReader = NfcReaderFactory::getInstance()->createNfcReader(oled, buzzer);
 //ICoffeeMaker *coffeemaker =  CoffeeMakerFactory::getInstance()->createCoffeeMaker(oled, buzzer);
@@ -68,7 +74,6 @@ BleConnection bleConnection;
 CoffeeLogger logger;
 EEPROMConfig eepromConfig;
 OTAUpdate update(oled);
-AwsIotClient iotClient;
 
 void setup() {
 #if defined(SERLOG) || defined(DEBUG)
@@ -97,9 +102,9 @@ void setup() {
 
   dumpPricelistAndCards(pricelist, cardlist);
 
-  mqttService.setup_wifi();
-  mqttService.initMqtt(mqttCallback);
-  iotClient.initAwsClient();
+  wifi.setup_wifi();
+  fp.attach(&executeCommand);
+  messageBroker->init(fp);
   ntpClient.setupNtp();
 
   oled->message_print(F("Ready to brew"), F(""), 2000);
@@ -108,8 +113,7 @@ void setup() {
 }
 
 void loop() {  
-    mqttService.loopMqtt();
-    iotClient.loopAwsClient();
+    messageBroker->loop();
  
   // Check if there is a bluetooth connection and command
   // handle serial and bluetooth input
@@ -190,7 +194,7 @@ void loop() {
            if ((credit - price) > 0) {
             oled->message_print(logger.print10digits(RFIDcard), logger.printCredit(credit), 0);
             eepromConfig.updateCredit(k*6+4, ( credit- price));
-            iotClient.sendmessage (logger.print10digits(RFIDcard), productname, price);   
+            messageBroker->sendmessage (logger.print10digits(RFIDcard), productname, price);   
             journal.writeJournal(String(now()), logger.print10digits(RFIDcard), productname, String(price));
             coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
             buttonPress= false;
@@ -226,10 +230,10 @@ void executeCommand(String command) {
       actTime = millis();
       buzzer->beep(1);
       oled->message_print(F("Registering"),F("new cards"),0);
-      mqttService.publish("Registering new cards");
+      messageBroker->publish("Registering new cards");
       nfcReader->registernewcards();
       cardlist = eepromConfig.readCards();
-      mqttService.publish("Registering ended");
+      messageBroker->publish("Registering ended");
       oled->message_clear();
     }
     // BT: Send RFID card numbers to app    
@@ -248,7 +252,7 @@ void executeCommand(String command) {
           if(card > 0) cards += ",";
         }
       }
-      mqttService.publish("CARDS:" + cards);
+      messageBroker->publish("CARDS:" + cards);
     }
     // BT: Delete a card and referring credit   
     if(command.startsWith("DDD") == true){
@@ -261,7 +265,7 @@ void executeCommand(String command) {
       eepromConfig.deleteCard(i*6, 0);
       eepromConfig.deleteCredit(i*6+2, 0);
       buzzer->beep(1);
-      mqttService.publish("Deleted card: " + String(card));
+      messageBroker->publish("Deleted card: " + String(card));
     }    
     // BT: Charge a card    
     if((command.startsWith("CCC") == true) ){
@@ -281,7 +285,7 @@ void executeCommand(String command) {
       buzzer->beep(1);
       unsigned long card=cardlist.cards[i].card;
       oled->message_print(logger.print10digits(card),"+"+logger.printCredit(j),2000);    
-       mqttService.publish("Charged card " + String(card) + ", new credit: " + logger.printCredit(j));
+      messageBroker->publish("Charged card " + String(card) + ", new credit: " + logger.printCredit(j));
     } 
     // BT: Receives (updated) price list from app.  
     if(command.startsWith("CHA") == true){
@@ -307,7 +311,7 @@ void executeCommand(String command) {
       eepromConfig.updatePricelist(pricelist);
       buzzer->beep(1);
       oled->message_print(F("Pricelist"), F("updated!"), 2000);
-      mqttService.publish("Updated pricelist on device");
+      messageBroker->publish("Updated pricelist on device");
     }
     // BT: Sends price list to app. Product 1 to 10 (0-9), prices divided by commas plus standard value for new cards
     if(command.startsWith("REA") == true){
@@ -324,30 +328,30 @@ void executeCommand(String command) {
         if (i < 10) bleConnection.getSerial().write(',');
 #endif
       }
-      mqttService.publish("Received pricelist from device");
+      messageBroker->publish("Received pricelist from device");
     } 
 
     if(command.startsWith("UPDATE") == true) {
-      mqttService.publish("Firmwareupdate requested");
+      messageBroker->publish("Firmwareupdate requested");
       update.startUpdate();
     }
 
     if(command.startsWith("RESTART") == true) {
-      mqttService.publish("Gerät wird neu gestartet");
+      messageBroker->publish("Gerät wird neu gestartet");
       ESP.restart();
     }
 
     if(command.startsWith("JOURNAL") == true) {
-      mqttService.publish(journal.exportJournal());
+      messageBroker->publish(journal.exportJournal());
     }
 
     if(command == "?M3"){
       coffeemaker->inkasso_on();
-      mqttService.publish("Inkasso-mode turned ON");
+      messageBroker->publish("Inkasso-mode turned ON");
     }
     if(command == "?M1"){
       coffeemaker->inkasso_off();  
-      mqttService.publish("Inkasso-mode turned OFF");
+      messageBroker->publish("Inkasso-mode turned OFF");
    }
     if(command == "FA:04"){        // small cup ordered via app
       coffeemaker->toCoffeemaker("FA:04\r\n"); 
@@ -376,17 +380,4 @@ void dumpPricelistAndCards(pricelist_t pricelist, cardlist_t cardlist) {
     yield(); // Enable ESP8266 to do background tasks and make Watchdog happy
   }
 #endif
-}
-
-// On ESP822 platform this method has to stay in main sketch. This is because of
-// callback signature "std::function<void(char*, uint8_t*, unsigned int)> callback"
-// in PubSubClient for ESP8266
-void mqttCallback(char* topic, byte* payload, unsigned int length) {
-  logger.log("Message arrived [" + String(topic) + "] ");
-  String command  = "";
-  for (int i = 0; i < length; i++) {
-    command += (char)payload[i];
-  }
-  logger.log("cmd via mqtt:" + command);
-  executeCommand(command);
 }

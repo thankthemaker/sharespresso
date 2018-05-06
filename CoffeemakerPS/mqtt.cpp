@@ -1,41 +1,36 @@
 #include "mqtt.h";
 
-MqttService::MqttService() : espClient(), mqttClient(espClient) {
-}
+static FP<void,String> fp;
 
-void MqttService::setup_wifi() {
-
-  delay(10);
-  // We start by connecting to a WiFi network
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(WIFI_SSID);
-
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+// On ESP822 platform this method has to stay in main sketch. This is because of
+// callback signature "std::function<void(char*, uint8_t*, unsigned int)> callback"
+// in PubSubClient for ESP8266
+void callbackMqtt(char* topic, byte* payload, unsigned int length) {
+//  logger.log("Message arrived [" + String(topic) + "] ");
+  String command  = "";
+  for (int i = 0; i < length; i++) {
+    command += (char)payload[i];
   }
-
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+//  logger.log("cmd via mqtt:" + command);
+  fp(command);
 }
-void MqttService::initMqtt(MQTT_CALLBACK_SIGNATURE) {
+
+MqttService::MqttService() : espClient(), mqttClient(espClient) {}
+
+void MqttService::init(FP<void,String>tmpFp) {
     this->mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
-    this->mqttClient.setCallback(callback);
+    this->mqttClient.setCallback(callbackMqtt);
+    fp = tmpFp;
 }
 
-void MqttService::loopMqtt() {
+void MqttService::loop() {
     if (!this->mqttClient.connected()) {
-      this->mqttReconnect();
+      this->reconnect();
     }
     this->mqttClient.loop();
 }
 
-void MqttService::mqttReconnect() {
+void MqttService::reconnect() {
   // Loop until we're reconnected
   while (!this->mqttClient.connected()) {
     Serial.print("Attempting MQTT connection...");
@@ -43,9 +38,9 @@ void MqttService::mqttReconnect() {
     if (this->mqttClient.connect("Jura Giga X8", MQTT_USERNAME, MQTT_PASSWORD)) {
       Serial.println("connected");
       // Once connected, publish an announcement...
-      this->mqttClient.publish(MQTT_TOPIC_OUT, "Jura Giga X8 is ready now...");
+      this->mqttClient.publish(TOPIC_OUT, "Jura Giga X8 is ready now...");
       // ... and resubscribe
-      this->mqttClient.subscribe(MQTT_TOPIC_IN);
+      this->mqttClient.subscribe(TOPIC_IN);
     } else {
       Serial.print("failed, rc=");
       Serial.print(this->mqttClient.state());
@@ -59,6 +54,9 @@ void MqttService::mqttReconnect() {
 void MqttService::publish(String message) {
   char charBuf[message.length()+1];
   message.toCharArray(charBuf, message.length()+1); 
-  this->mqttClient.publish(MQTT_TOPIC_OUT, charBuf);
+  this->mqttClient.publish(TOPIC_OUT, charBuf);
 }
 
+void MqttService::sendmessage(const String cardId, const String product, const int price) {
+  this->publish(cardId + ";" + product + ";" + price);  
+}
