@@ -11,8 +11,6 @@
  // MQTT settings
  #define MQTT_SERVER         "mqtt.thank-the-maker.org"
  #define MQTT_PORT           1883
- #define MQTT_TOPIC_IN       "/coffeemaker/gigax8/toCoffeemaker"
- #define MQTT_TOPIC_OUT      "/coffeemaker/gigax8/fromCoffeemaker"
  #define MQTT_USERNAME       "***"
  #define MQTT_PASSWORD       "***"  
 
@@ -23,6 +21,10 @@
  #define AWS_REGION          "us-west-2"
  #define AWS_TOPIC           "coffeemaker/coffee"
  #define AWS_PORT            443
+
+#define TOPIC_IN            "/coffeemaker/gigax8/toCoffeemaker"
+#define TOPIC_OUT           "/coffeemaker/gigax8/fromCoffeemaker"
+#define TOPIC_COFFEE        "coffeemaker/coffee"
 
  #define APP_NAME            "Sharepresso"
 
@@ -54,6 +56,9 @@
  // Choose display type OLED or TFT
  //#define DISPLAY_OLED
  #define DISPLAY_TFT
+
+//#define BROKER_MQTT
+#define BROKER_AWS
 
  // PIN definition Sparkfun ESP8266 Thing Dev
  #ifdef SPARKFUN
