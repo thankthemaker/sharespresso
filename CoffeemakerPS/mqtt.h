@@ -15,7 +15,7 @@ class MqttService : public IMessageBroker {
     public:
         MqttService();
         
-        void init(MQTT_CALLBACK_SIGNATURE);
+        void init(FP<void,String>fp);        
         void loop();
         void reconnect();
         void publish(String message);

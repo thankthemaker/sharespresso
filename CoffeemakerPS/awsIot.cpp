@@ -1,6 +1,8 @@
 #include "awsIot.h";
 
-void mqttCallback(MQTT::MessageData& md) {
+static FP<void,String> fp;
+
+void callbackAws(MQTT::MessageData& md) {
   MQTT::Message &message = md.message;
 
   Serial.print("Message arrived: qos ");
@@ -15,7 +17,9 @@ void mqttCallback(MQTT::MessageData& md) {
   char* msg = new char[message.payloadlen+1]();
   memcpy (msg,message.payload,message.payloadlen);
   Serial.println(msg);
+  fp(String(msg));
   delete msg;
+
 }
 
 AwsIotClient::AwsIotClient() : awsWSclient(1000), ipstack(awsWSclient){};
@@ -80,7 +84,7 @@ bool AwsIotClient::connect () {
 //subscribe to a mqtt topic
 void AwsIotClient::subscribe () {
    //subscript to a topic
-    int rc = client->subscribe(TOPIC_IN, MQTT::QOS0, mqttCallback);
+    int rc = client->subscribe(TOPIC_IN, MQTT::QOS0, callbackAws);
     if (rc != 0) {
       Serial.print("rc from MQTT subscribe is ");
       Serial.println(rc);
@@ -115,13 +119,15 @@ void AwsIotClient::publish_to_topic(const char* topic, const String& message) {
         mqtt_message.payloadlen = strlen(buf.get())+1;
         client->publish(topic, mqtt_message); 
 }
-void AwsIotClient::init(MQTT_CALLBACK_SIGNATURE) {
+void AwsIotClient::init(FP<void,String>tmpFp) {
     //fill AWS parameters    
     awsWSclient.setAWSRegion(AWS_REGION);
     awsWSclient.setAWSDomain(AWS_ENDPOINT);
     awsWSclient.setAWSKeyID(AWS_KEY);
     awsWSclient.setAWSSecretKey(AWS_SECRET);
     awsWSclient.setUseSSL(true);
+
+    fp = tmpFp;
 
     if (this->connect ()){
       this->subscribe ();

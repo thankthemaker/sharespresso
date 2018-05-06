@@ -48,7 +48,7 @@ class AwsIotClient : public IMessageBroker {
 
   public:
     AwsIotClient();
-    void init(MQTT_CALLBACK_SIGNATURE);
+    void init(FP<void,String>fp);
     void loop();
     void reconnect();
     char* generateClientID ();

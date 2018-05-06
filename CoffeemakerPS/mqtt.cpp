@@ -1,10 +1,26 @@
 #include "mqtt.h";
 
+static FP<void,String> fp;
+
+// On ESP822 platform this method has to stay in main sketch. This is because of
+// callback signature "std::function<void(char*, uint8_t*, unsigned int)> callback"
+// in PubSubClient for ESP8266
+void callbackMqtt(char* topic, byte* payload, unsigned int length) {
+//  logger.log("Message arrived [" + String(topic) + "] ");
+  String command  = "";
+  for (int i = 0; i < length; i++) {
+    command += (char)payload[i];
+  }
+//  logger.log("cmd via mqtt:" + command);
+  fp(command);
+}
+
 MqttService::MqttService() : espClient(), mqttClient(espClient) {}
 
-void MqttService::init(MQTT_CALLBACK_SIGNATURE) {
+void MqttService::init(FP<void,String>tmpFp) {
     this->mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
-    this->mqttClient.setCallback(callback);
+    this->mqttClient.setCallback(callbackMqtt);
+    fp = tmpFp;
 }
 
 void MqttService::loop() {
@@ -44,6 +60,3 @@ void MqttService::publish(String message) {
 void MqttService::sendmessage(const String cardId, const String product, const int price) {
   this->publish(cardId + ";" + product + ";" + price);  
 }
-
-
-

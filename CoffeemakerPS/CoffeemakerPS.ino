@@ -43,6 +43,9 @@ char trivialfix;
 #include "journal.h"
 #include "chucknorris.h"
 
+#include <MQTTClient.h>
+
+
 // general variables (used in loop)
 boolean buttonPress = false;
 String BTstring=""; // contains what is received via bluetooth (from app or other bt client)
@@ -55,6 +58,7 @@ String productname="undefined";
 pricelist_t pricelist;
 cardlist_t cardlist;
 
+FP<void,String>fp;
 Journal journal;
 Wifi wifi;
 Buzzer *buzzer = new Buzzer();
@@ -99,7 +103,8 @@ void setup() {
   dumpPricelistAndCards(pricelist, cardlist);
 
   wifi.setup_wifi();
-  messageBroker->init(mqttCallback);
+  fp.attach(&executeCommand);
+  messageBroker->init(fp);
   ntpClient.setupNtp();
 
   oled->message_print(F("Ready to brew"), F(""), 2000);
@@ -375,17 +380,4 @@ void dumpPricelistAndCards(pricelist_t pricelist, cardlist_t cardlist) {
     yield(); // Enable ESP8266 to do background tasks and make Watchdog happy
   }
 #endif
-}
-
-// On ESP822 platform this method has to stay in main sketch. This is because of
-// callback signature "std::function<void(char*, uint8_t*, unsigned int)> callback"
-// in PubSubClient for ESP8266
-void mqttCallback(char* topic, byte* payload, unsigned int length) {
-  logger.log("Message arrived [" + String(topic) + "] ");
-  String command  = "";
-  for (int i = 0; i < length; i++) {
-    command += (char)payload[i];
-  }
-  logger.log("cmd via mqtt:" + command);
-  executeCommand(command);
 }

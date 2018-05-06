@@ -146,3 +146,4 @@ ICoffeeMaker* CoffeeMakerFactory::createCoffeeMaker(IDisplay *oled, Buzzer *buzz
  ICoffeeMaker *coffeemaker = new JuraS95(oled, buzzer);
 #endif
 }
+
