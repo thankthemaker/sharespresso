@@ -44,16 +44,24 @@ char trivialfix;
 #include "chucknorris.h"
 
 #include <MQTTClient.h>
+std::map <char, String> products;
 
 
 // general variables (used in loop)
 boolean buttonPress = false;
+boolean tempInkassoOff = false;
+
 String BTstring=""; // contains what is received via bluetooth (from app or other bt client)
 unsigned long actTime; // timer for RFID etc
 unsigned long buttonTime; // timer for button press 
+unsigned long tempInkassoOffTime; // timer for temporary inkasso mode press 
+unsigned long lastAlive; // time of the last Alive signal send
+unsigned long aliveCounter = 0;
+
 boolean override = false;  // to override payment system by the voice-control/button-press app
 unsigned long RFIDcard = 0;
 int price=0;
+int coffeecounter = 0;
 String productname="undefined";
 pricelist_t pricelist;
 cardlist_t cardlist;
@@ -70,7 +78,7 @@ ICoffeeMaker *coffeemaker = new JuraGigaX8(oled, buzzer);
 Chucknorris chucknorris;
 
 NtpClient ntpClient;
-BleConnection bleConnection;
+//BleConnection bleConnection;
 CoffeeLogger logger;
 EEPROMConfig eepromConfig;
 OTAUpdate update(oled);
@@ -79,17 +87,29 @@ void setup() {
 #if defined(SERLOG) || defined(DEBUG)
   Serial.begin(9600);
 #endif
+
+  products['A'] = "Americano";
+  products['B'] = "Kaffee groß";
+  products['C'] = "Espresso";
+  products['D'] = "Heißwasser";
+  products['E'] = "Cappuccino groß";
+  products['F'] = "Kaffee";
+  products['G'] = "Milchkaffee";
+  products['H'] = "Latte Machiatto";
+  
+  products['J'] = "Sonstiges";
+
   journal.initJournal();
   logger.log(LOG_DEBUG, "number of products: " + String(coffeemaker->getProducts().size()));
   logger.log(LOG_INFO, "initializing Display");
   oled->initDisplay();
   
   oled->message_print(F("sharespresso"), F("starting up"), 1500);
-  oled->print_logo();
+//  oled->print_logo();
   coffeemaker->initCoffeemaker(); // start serial communication at 9600bps
 
-  logger.log(LOG_INFO, "initializing bluetooth module");
-  bleConnection.initBle();
+//  logger.log(LOG_INFO, "initializing bluetooth module");
+//  bleConnection.initBle();
 
   // initialized rfid lib
   logger.log(LOG_INFO, "initializing rfid reader");
@@ -102,32 +122,52 @@ void setup() {
 
   dumpPricelistAndCards(pricelist, cardlist);
 
-  wifi.setup_wifi();
+  oled->message_print(F("connecting"), F("WIFI"), 0);
+  String ip = wifi.setup_wifi();
+  oled->message_print(F("WIFI:"), ip, 0);
+
   fp.attach(&executeCommand);
   messageBroker->init(fp);
   ntpClient.setupNtp();
-
-  oled->message_print(F("Ready to brew"), F(""), 2000);
+  
   // activate coffemaker connection and inkasso mode
-  coffeemaker->inkasso_on();
+  int retries = 5;
+  while(!coffeemaker->inkasso_on(true) && retries > 0) {
+    logger.log(LOG_INFO, "retrying in 5 seconds, retries left: " + String(retries));
+    retries--;
+    delay(5000);
+  }
+  if(retries == 0) {
+    logger.log(LOG_ERR, "unable to connect to coffeemaker");
+    oled->message_print(F("no connection"), F("to coffeemaker"), 0);
+      buzzer->beep(4);
+  } else {
+      oled->message_print(F("Ready to brew"), F(""), 2000);
+  }
 }
 
 void loop() {  
     messageBroker->loop();
+
+    if(millis() - lastAlive > 15000) {
+      lastAlive = millis();
+      ++aliveCounter;
+      messageBroker->publish("coffeemaker is alive, count " + String(aliveCounter));
+    }
  
   // Check if there is a bluetooth connection and command
   // handle serial and bluetooth input
-  BTstring = bleConnection.readCommand();
+//  BTstring = bleConnection.readCommand();
 
-  while( Serial.available() ){  
-    BTstring += String(char(Serial.read()));
-    delay(7);  
-  }
-  BTstring.trim();
+//  while( Serial.available() ){  
+//    BTstring += String(char(Serial.read()));
+//    delay(7);  
+//  }
+//  BTstring.trim();
   
-  if (BTstring.length() > 0){
-    executeCommand(BTstring);   
-  }          
+//  if (BTstring.length() > 0){
+//    executeCommand(BTstring);   
+//  }          
 
   // Get key pressed on coffeemaker
   String message = coffeemaker->fromCoffeemaker();   // gets answers from coffeemaker 
@@ -137,9 +177,12 @@ void loop() {
       buttonPress = true;
       buttonTime = millis();
 
-      std::map<char,String>::iterator it = coffeemaker->getProducts().find(message.charAt(3));
-      if(it == coffeemaker->getProducts().end()) {
+      //std::map<char,String>::iterator it = coffeemaker->getProducts().find(message.charAt(3));
+      std::map<char,String>::iterator it = products.find(message.charAt(3));
+      //if(it == coffeemaker->getProducts().end()) {
+      if(it == products.end()) {
         // Key not found
+        logger.log("unknown product=" + String(message.charAt(3)));
         oled->message_print(F("Error unknown"), F("product"), 2000);
         buttonPress = false;   
       } else {
@@ -147,7 +190,7 @@ void loop() {
         productname = it->second;
       }
       price = pricelist.prices[coffeemaker->getIndexForProduct(message.charAt(3))];
-      oled->message_print(productname, logger.printCredit(price), 0);
+      oled->message_print(logger.printCredit(price), productname, 0);
       // boss mode, he does not pay
       if (override == true){
         price = 0;
@@ -157,6 +200,7 @@ void loop() {
   // User has five seconds to pay
   if (buttonPress == true) {
     if (millis()-buttonTime > 5000){  
+      buzzer->beep(2);
       buttonPress = false;
       price = 0;
       oled->message_clear();
@@ -167,6 +211,20 @@ void loop() {
     buttonPress == false;
     override == false;
   }
+
+  if(tempInkassoOff == true) {
+     // activate temporary deactivated inkassomode if coffee is ready or after 60 seconds
+     int tmpCounter = coffeemaker->readRegister("0004");
+                 Serial.println("counter: " + String(tmpCounter));
+
+     if (coffeecounter+1 == tmpCounter || millis()-tempInkassoOffTime > 60000){  
+      tempInkassoOff = false;
+      while(!coffeemaker->inkasso_on(false)) {
+        delay(200);
+      }
+    }
+  }
+  
   // RFID Identification      
   RFIDcard = 0;  
   actTime = millis(); 
@@ -192,15 +250,28 @@ void loop() {
         int credit = eepromConfig.readCredit(k*6+4);
         if(buttonPress == true) { // button pressed on coffeemaker?
            if ((credit - price) > 0) {
+            coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
+            delay(50);
+            coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
+            delay(50);
+            coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
+            delay(50);
             oled->message_print(logger.print10digits(RFIDcard), logger.printCredit(credit), 0);
             eepromConfig.updateCredit(k*6+4, ( credit- price));
-            messageBroker->sendmessage (logger.print10digits(RFIDcard), productname, price);   
-            journal.writeJournal(String(now()), logger.print10digits(RFIDcard), productname, String(price));
-            coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
+            messageBroker->sendmessage (logger.print10digits(RFIDcard), productname, (float)price / 100.0);   
+            journal.writeJournal(String(now()), logger.print10digits(RFIDcard), productname, String((float)price / 100.0));
             buttonPress= false;
             price= 0;
- //           delay(2000);
- //           oled->message_print_scroll(chucknorris.getNextChucknorrisFact());
+            tempInkassoOff = true;
+            tempInkassoOffTime = millis();
+            coffeecounter = coffeemaker->readRegister("0004");
+            Serial.println("counter: " + String(coffeecounter));
+            while(!coffeemaker->inkasso_off(false)) {
+              delay(200);
+            }
+            delay(500);
+            oled->message_print_scroll(chucknorris.getNextChucknorrisFact());
+
           } 
           else {
             buzzer->beep(2);
@@ -222,113 +293,26 @@ void loop() {
 }
 
 void executeCommand(String command) {
-    // BT: Start registering new cards until 10 s no valid, unregistered card
 #if defined(DEBUG)
     logger.log("cmd=" + command);
 #endif
     if( command == "RRR" ){          
-      actTime = millis();
-      buzzer->beep(1);
-      oled->message_print(F("Registering"),F("new cards"),0);
-      messageBroker->publish("Registering new cards");
-      nfcReader->registernewcards();
-      cardlist = eepromConfig.readCards();
-      messageBroker->publish("Registering ended");
-      oled->message_clear();
+      registerCards();
     }
-    // BT: Send RFID card numbers to app    
     if(command == "LLL"){  // 'L' for 'list' sends RFID card numbers to app   
-      String cards = "";
-      for(int i=0;i<MAX_CARDS;i++){
-        unsigned long card=cardlist.cards[i].card;
-#ifdef BLE_ENABLED
-        bleConnection.getSerial().print(logger.print10digits(card)); 
-#endif
-        if(card > 0) cards += logger.print10digits(card);
-        if (i < (MAX_CARDS-1)) {
-#ifdef BLE_ENABLED
-         bleConnection.getSerial().write(',');  // write comma after card number if not last
-#endif
-          if(card > 0) cards += ",";
-        }
-      }
-      messageBroker->publish("CARDS:" + cards);
+      listCards();
     }
-    // BT: Delete a card and referring credit   
     if(command.startsWith("DDD") == true){
-      command.remove(0,3); // removes "DDD" and leaves the index
-      int i = command.toInt();
-      i--; // list picker index (app) starts at 1, while RFIDcards array starts at 0
-      unsigned long card= cardlist.cards[i].card;
-      int credit= eepromConfig.readCredit(i*6+4);      
-      oled->message_print(logger.print10digits(card), F("deleting"), 2000);    
-      eepromConfig.deleteCard(i*6, 0);
-      eepromConfig.deleteCredit(i*6+2, 0);
-      buzzer->beep(1);
-      messageBroker->publish("Deleted card: " + String(card));
+      deleteCard(command);
     }    
-    // BT: Charge a card    
     if((command.startsWith("CCC") == true) ){
-      char a1 = command.charAt(3);  // 3 and 4 => card list picker index (from app)
-      char a2 = command.charAt(4);
-      char a3 = command.charAt(5);  // 5 and 6 => value to charge
-      char a4 = command.charAt(6);    
-      command = String(a1)+String(a2); 
-      int i = command.toInt();    // index of card
-      command = String(a3)+String(a4);
-      int j = command.toInt();   // value to charge
-      j *= 100;
-      i--; // list picker index (app) starts at 1, while RFIDcards array starts at 0  
-      int credit= eepromConfig.readCredit(i*6+4);
-      credit+= j;
-      eepromConfig.updateCredit(i*6+4, credit);
-      buzzer->beep(1);
-      unsigned long card=cardlist.cards[i].card;
-      oled->message_print(logger.print10digits(card),"+"+logger.printCredit(j),2000);    
-      messageBroker->publish("Charged card " + String(card) + ", new credit: " + logger.printCredit(j));
+      chargeCard(command);
     } 
-    // BT: Receives (updated) price list from app.  
     if(command.startsWith("CHA") == true){
-      int k = 3;
-      pricelist_t pricelist;
-      for (int i = 0; i < 11;i++){  
-        String tempString = "";
-        do {
-          tempString += command.charAt(k);
-          k++;
-        } while (command.charAt(k) != ','); 
-        int j = tempString.toInt();
-#if defined(DEBUG)        
-        logger.log(String(i*2) + PRICELIST_ADDRESS_OFFSET);
-#endif
-        if(i!=10) {
-          pricelist.prices[i] = j;
-        } else {
-          pricelist.defaultCredit = j;
-        }
-        k++;
-      }
-      eepromConfig.updatePricelist(pricelist);
-      buzzer->beep(1);
-      oled->message_print(F("Pricelist"), F("updated!"), 2000);
-      messageBroker->publish("Updated pricelist on device");
+      updatePricelist(command);
     }
-    // BT: Sends price list to app. Product 1 to 10 (0-9), prices divided by commas plus standard value for new cards
     if(command.startsWith("REA") == true){
-      // delay(100); // testweise      
-      for (int i = 0; i < 11; i++) {
-        price = pricelist.prices[i];
-#ifdef BLE_ENABLED
-        bleConnection.getSerial().print(int(price/100));
-        bleConnection.getSerial().print('.');
-        if ((price%100) < 10){
-          bleConnection.getSerial().print('0');
-        }
-        bleConnection.getSerial().print(price%100);
-        if (i < 10) bleConnection.getSerial().write(',');
-#endif
-      }
-      messageBroker->publish("Received pricelist from device");
+      readPricelist();
     } 
 
     if(command.startsWith("UPDATE") == true) {
@@ -346,13 +330,15 @@ void executeCommand(String command) {
     }
 
     if(command == "?M3"){
-      coffeemaker->inkasso_on();
-      messageBroker->publish("Inkasso-mode turned ON");
+      if(coffeemaker->inkasso_on(true)) {
+        messageBroker->publish("Inkasso-mode turned ON");
+      }
     }
     if(command == "?M1"){
-      coffeemaker->inkasso_off();  
-      messageBroker->publish("Inkasso-mode turned OFF");
-   }
+      if(coffeemaker->inkasso_off(true)) {
+        messageBroker->publish("Inkasso-mode turned OFF");
+      }  
+    }
     if(command == "FA:04"){        // small cup ordered via app
       coffeemaker->toCoffeemaker("FA:04\r\n"); 
       override = true;
@@ -380,4 +366,109 @@ void dumpPricelistAndCards(pricelist_t pricelist, cardlist_t cardlist) {
     yield(); // Enable ESP8266 to do background tasks and make Watchdog happy
   }
 #endif
+}
+
+void registerCards() {
+  actTime = millis();
+  buzzer->beep(1);
+  oled->message_print(F("Registering"),F("new cards"),0);
+  messageBroker->publish("Registering new cards");
+  nfcReader->registernewcards();
+  cardlist = eepromConfig.readCards();
+  messageBroker->publish("Registering ended");
+  oled->message_clear();
+}
+
+void listCards() {
+  String cards = "";
+  for(int i=0;i<MAX_CARDS;i++){
+    unsigned long card=cardlist.cards[i].card;
+#ifdef BLE_ENABLED
+//    bleConnection.getSerial().print(logger.print10digits(card)); 
+#endif
+    if(card > 0) cards += logger.print10digits(card);
+    if (i < (MAX_CARDS-1)) {
+#ifdef BLE_ENABLED
+//     bleConnection.getSerial().write(',');  // write comma after card number if not last
+#endif
+      if(card > 0) cards += ",";
+    }
+  }
+  messageBroker->publish("CARDS:" + cards);
+}
+
+void deleteCard(String command) {
+  command.remove(0,3); // removes "DDD" and leaves the index
+  int index = command.toInt();
+  index--; // list picker index (app) starts at 1, while RFIDcards array starts at 0
+  unsigned long card= cardlist.cards[index].card;
+  int credit= eepromConfig.readCredit(index*6+4);      
+  oled->message_print(logger.print10digits(card), F("deleting"), 2000);    
+  eepromConfig.deleteCard(index*6, 0);
+  eepromConfig.deleteCredit(index*6+2, 0);
+  buzzer->beep(1);
+  messageBroker->publish("Deleted card: " + String(card));
+}
+
+void chargeCard(String command) {
+  char a1 = command.charAt(3);  // 3 and 4 => card list picker index (from app)
+  char a2 = command.charAt(4);
+  char a3 = command.charAt(5);  // 5 and 6 => value to charge
+  char a4 = command.charAt(6);    
+  command = String(a1)+String(a2); 
+  int i = command.toInt();    // index of card
+  command = String(a3)+String(a4);
+  int j = command.toInt();   // value to charge
+  j *= 100;
+  i--; // list picker index (app) starts at 1, while RFIDcards array starts at 0  
+  int credit= eepromConfig.readCredit(i*6+4);
+  credit+= j;
+  eepromConfig.updateCredit(i*6+4, credit);
+  buzzer->beep(1);
+  unsigned long card=cardlist.cards[i].card;
+  oled->message_print(logger.print10digits(card),"+"+logger.printCredit(j),2000);    
+  messageBroker->publish("Charged card " + String(card) + ", new credit: " + logger.printCredit(j));
+}
+
+void updatePricelist(String command) {
+  int k = 3;
+  pricelist_t pricelist;
+  for (int i = 0; i < 11;i++){  
+    String tempString = "";
+    do {
+      tempString += command.charAt(k);
+      k++;
+    } while (command.charAt(k) != ','); 
+    int j = tempString.toInt();
+#if defined(DEBUG)        
+    logger.log(String(i*2) + PRICELIST_ADDRESS_OFFSET);
+#endif
+    if(i!=10) {
+      pricelist.prices[i] = j;
+    } else {
+      pricelist.defaultCredit = j;
+    }
+    k++;
+  }
+  eepromConfig.updatePricelist(pricelist);
+  buzzer->beep(1);
+  oled->message_print(F("Pricelist"), F("updated!"), 2000);
+  messageBroker->publish("Updated pricelist on device");
+}
+
+void readPricelist() {
+    // delay(100); // testweise      
+   for (int i = 0; i < 11; i++) {
+     price = pricelist.prices[i];
+#ifdef BLE_ENABLED
+ //   bleConnection.getSerial().print(int(price/100));
+ //   bleConnection.getSerial().print('.');
+ //   if ((price%100) < 10){
+ //     bleConnection.getSerial().print('0');
+ //   }
+ //   bleConnection.getSerial().print(price%100);
+ //   if (i < 10) bleConnection.getSerial().write(',');
+#endif
+  }
+  messageBroker->publish("Received pricelist from device");
 }

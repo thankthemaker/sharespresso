@@ -3,7 +3,7 @@
 #include <ArduinoJson.h>
 
 // Number of facts to be cached
-const int factscount = 50;
+const int factscount = 5;
 
 // Cache-variable
 String facts[factscount];
@@ -32,7 +32,7 @@ void prefetchFacts(int amount) {
           facts[i] = fact;
         }
       } else {
-        Serial.printf("[HTTP] GET... failed, code: %s", httpCode;
+        Serial.printf("[HTTP] GET... failed, code: %s", httpCode);
       }
     
   } else {

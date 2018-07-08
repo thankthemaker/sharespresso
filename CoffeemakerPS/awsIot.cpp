@@ -94,7 +94,7 @@ void AwsIotClient::subscribe () {
 }
 
 //send a message to a mqtt topic
-void AwsIotClient::sendmessage(const String cardId, const String product, const int price){ 
+void AwsIotClient::sendmessage(const String cardId, const String product, const float price){ 
         StaticJsonBuffer<maxMQTTpackageSize> jsonBuffer;
         JsonObject& root = jsonBuffer.createObject();
         root["cardid"] = cardId;

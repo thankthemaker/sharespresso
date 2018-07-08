@@ -9,6 +9,6 @@ class Wifi {
     public:
         WiFiClient espClient;
         Wifi();
-        void setup_wifi();
+        String setup_wifi();
 };
 #endif

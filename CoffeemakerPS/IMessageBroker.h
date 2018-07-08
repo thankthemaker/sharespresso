@@ -13,7 +13,7 @@ class IMessageBroker {
         virtual void loop() = 0;
         virtual void reconnect() = 0;
         virtual void publish(String message) = 0;
-        virtual void sendmessage(const String cardId, const String product, const int price) = 0;
+        virtual void sendmessage(const String cardId, const String product, const float price) = 0;
 };
 
 class MessageBrokerFactory {

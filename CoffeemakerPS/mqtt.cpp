@@ -57,6 +57,6 @@ void MqttService::publish(String message) {
   this->mqttClient.publish(TOPIC_OUT, charBuf);
 }
 
-void MqttService::sendmessage(const String cardId, const String product, const int price) {
+void MqttService::sendmessage(const String cardId, const String product, const float price) {
   this->publish(cardId + ";" + product + ";" + price);  
 }

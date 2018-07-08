@@ -2,7 +2,7 @@
 
 Wifi::Wifi() : espClient() {};
 
-void Wifi::setup_wifi() {
+String Wifi::setup_wifi() {
 
   delay(10);
   // We start by connecting to a WiFi network
@@ -21,4 +21,9 @@ void Wifi::setup_wifi() {
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
+  Serial.println("MAC address: ");
+  Serial.println(WiFi.macAddress());
+
+
+  return String(WiFi.localIP());
 }

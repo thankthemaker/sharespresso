@@ -19,7 +19,7 @@ class JuraGigaX8 : public ICoffeeMaker {
         // product codes send by coffeemakers "?PA<x>\r\n", just <x>    
         //std::map <char, String> products;
         JuraGigaX8(IDisplay *oled, Buzzer *buzzer);
-        //std::map <char, String> getProducts();
+        //std::map <char, String>  getProducts();
         //int getIndexForProduct(char productCode);
 };
 #endif

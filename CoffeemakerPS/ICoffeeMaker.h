@@ -19,9 +19,10 @@ class ICoffeeMaker {
         void initCoffeemaker();
         String fromCoffeemaker();
         void toCoffeemaker(String outputString);
-        void servicetoggle(void);
-        void inkasso_off(void);
-        void inkasso_on(void);
+        boolean servicetoggle(void);
+        boolean inkasso_off(boolean feedback);
+        boolean inkasso_on(boolean feedback);
+        int readRegister(String register);
 
         std::map <char, String>  getProducts();
         int getIndexForProduct(char productCode);

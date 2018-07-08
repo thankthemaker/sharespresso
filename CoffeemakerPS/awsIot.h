@@ -55,6 +55,6 @@ class AwsIotClient : public IMessageBroker {
     bool connect ();
     void publish(String message);
     void subscribe ();
-    void sendmessage(const String cardId, const String product, const int price); 
+    void sendmessage(const String cardId, const String product, const float price); 
 };
 #endif

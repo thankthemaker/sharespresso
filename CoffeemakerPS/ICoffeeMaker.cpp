@@ -76,43 +76,62 @@ void ICoffeeMaker::toCoffeemaker(String outputString)
   }
 }
 
-void ICoffeeMaker::servicetoggle(void){
+boolean ICoffeeMaker::servicetoggle(void){
     inservice=not(inservice);
     if ( inservice) {
       this->oled->message_print(F("Service Mode"),F("started"),0);
-      this->inkasso_off();
 #if defined(BT)
       myBT.listen();
-#endif
+#endif      
+      return this->inkasso_off(true);
     } else {
       this->oled->message_print(F("Service Mode"),F("exited"),2000);
       myCoffeemaker.listen();
-      this->inkasso_on();
+      return this->inkasso_on(true);
     }
 }
 
-void ICoffeeMaker::inkasso_on(void){
+boolean ICoffeeMaker::inkasso_on(boolean feedback){
   this->toCoffeemaker("?M3\r\n");  // activates incasso mode (= no coffee w/o "ok" from the payment system! May be inactivated by sending "?M3" without quotation marks)
   delay (100);               // wait for answer from coffeemaker
   if (this->fromCoffeemaker() == "?ok"){
-    this->buzzer->beep(1);
-    this->oled->message_print(F("Inkasso mode"),F("activated!"),2000);  
+    if(feedback) {
+      this->buzzer->beep(1);
+      this->oled->message_print(F("Inkasso mode"),F("activated!"),2000); 
+    }
+    return true; 
   } else {
     this->buzzer->beep(2);
     this->oled->message_print(F("Coffeemaker"),F("not responding!"),2000);  
+    return false;
   }  
 }
 
-void ICoffeeMaker::inkasso_off(void){
+boolean ICoffeeMaker::inkasso_off(boolean feedback){
   this->toCoffeemaker("?M1\r\n");  // deactivates incasso mode (= no coffee w/o "ok" from the payment system! May be inactivated by sending "?M3" without quotation marks)
   delay (100);               // wait for answer from coffeemaker
   if (this->fromCoffeemaker() == "?ok"){
-    this->buzzer->beep(1);
-    this->oled->message_print(F("Inkasso mode"),F("deactivated!"),2000);  
+    if(feedback) {
+      this->buzzer->beep(1);
+      this->oled->message_print(F("Inkasso mode"),F("deactivated!"),2000);  
+    }
+    return true;
   } else {
     this->buzzer->beep(2);
     this->oled->message_print(F("Coffeemaker"),F("not responding!"),2000);  
+    return false;
   }
+}
+
+int ICoffeeMaker::readRegister(String reg){
+  this->toCoffeemaker("RE:" + reg + "\r\n"); 
+  delay (100);               // wait for answer from coffeemaker
+  String value = this->fromCoffeemaker();
+  value.remove(0,3);
+  value.remove(4); 
+  long val = strtol(value.c_str(), NULL, 16);
+
+  return val;    
 }
 
 std::map <char, String> ICoffeeMaker::getProducts() {

@@ -48,6 +48,11 @@ void TftDisplay::message_print(String msg1, String msg2, int wait) {
 void TftDisplay::message_print_scroll(String msg) {
     tft.fillScreen(ST7735_BLACK);
     Serial.println("Scroll message: " + msg);
+    if(msg.length() > 90) {
+      tft.setTextSize(1);
+    } else {
+      tft.setTextSize(2);
+    }
     for(int index=120; index>0; index=index-3) {
 
       tft.setCursor(3, index+3);
@@ -58,7 +63,7 @@ void TftDisplay::message_print_scroll(String msg) {
       tft.setTextColor(ST7735_WHITE);
       tft.print(msg);  
         
-      delay(90);
+      delay(50);
     }
 }
 
