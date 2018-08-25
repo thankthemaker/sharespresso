@@ -1,7 +1,7 @@
 #ifndef IMESSAGEBROKER_H
 #define IMESSAGEBROKER_H
 
-#include <ESP8266WiFi.h>;
+#include <WiFi.h>;
 #include "logging.h";
 #include "settings.h";
 #include "FP.h"
@@ -26,3 +26,4 @@ class MessageBrokerFactory {
         static MessageBrokerFactory *instance;    
 };
 #endif
+

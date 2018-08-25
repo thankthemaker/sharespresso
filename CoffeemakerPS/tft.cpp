@@ -15,7 +15,7 @@ void TftDisplay::initDisplay() {
 
 void TftDisplay::print_logo() {
   tft.fillScreen(ST7735_WHITE);
-  this->bmpDraw("postbank.bmp", 40, 24);
+//  this->bmpDraw("postbank.bmp", 40, 24);
 }
 
 void TftDisplay::message_print(String msg1, String msg2, int wait) {
@@ -45,6 +45,14 @@ void TftDisplay::message_print(String msg1, String msg2, int wait) {
   }
 }
 
+void TftDisplay::message_print(String msg1, String msg2, String msg3, int wait) {
+    this->message_print(msg1, msg2, wait);
+}
+
+void TftDisplay::message_print(String msg1, String msg2, String msg3, String msg4, int wait) {
+    this->message_print(msg1, msg2, wait);
+}
+
 void TftDisplay::message_print_scroll(String msg) {
     tft.fillScreen(ST7735_BLACK);
     Serial.println("Scroll message: " + msg);
@@ -72,6 +80,7 @@ void TftDisplay::message_clear() {
   //digitalWrite(TFT_LED, LOW);
 }
 
+/*
 #define BUFFPIXEL 20
 
 void TftDisplay::bmpDraw(char *filename, uint8_t x, uint8_t y) {
@@ -203,3 +212,5 @@ uint32_t TftDisplay::read32(File f) {
   ((uint8_t *)&result)[3] = f.read(); // MSB
   return result;
 }
+*/
+

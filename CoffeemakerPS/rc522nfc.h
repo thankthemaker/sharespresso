@@ -19,3 +19,4 @@ class Rc522NfcReader : public INfcReader{
         unsigned long nfcidread(void);
 };
 #endif
+

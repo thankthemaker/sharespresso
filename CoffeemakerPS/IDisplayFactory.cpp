@@ -2,6 +2,8 @@
 
 #if defined(DISPLAY_OLED)
  #include "oled.h";
+#elif defined(DISPLAY_OLED_SPI)
+ #include "oled_spi.h";
 #elif defined(DISPLAY_TFT)
  #include "tft.h"
 #endif
@@ -22,7 +24,10 @@ DisplayFactory* DisplayFactory::getInstance() {
 IDisplay* DisplayFactory::createDisplay() {
 #if defined(DISPLAY_OLED)
  return new OledDisplay();
+#elif defined(DISPLAY_OLED_SPI)
+ return new OledSpiDisplay();
 #elif defined(DISPLAY_TFT)
  return new TftDisplay();
 #endif
 }
+

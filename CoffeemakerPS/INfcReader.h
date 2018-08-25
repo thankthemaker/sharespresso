@@ -32,3 +32,4 @@ class NfcReaderFactory {
         static NfcReaderFactory *instance;    
 };
 #endif
+

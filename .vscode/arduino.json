@@ -1,7 +1,7 @@
 {
-    "board": "esp8266:esp8266:nodemcuv2",
-    "configuration": "CpuFrequency=80,FlashSize=4M1M,LwIPVariant=v2mss536,Debug=Disabled,DebugLevel=None____,UploadSpeed=115200",
+    "board": "esp32:esp32:esp32thing",
+    "configuration": "FlashFreq=80,UploadSpeed=921600",
     "sketch": "CoffeemakerPS/CoffeemakerPS.ino",
-    "port": "/dev/cu.SLAB_USBtoUART",
+    "port": "/dev/cu.usbserial-DN02ZC47",
     "output": "../build"
 }

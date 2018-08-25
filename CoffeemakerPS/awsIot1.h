@@ -1,4 +1,3 @@
-/*
 #ifndef AWSIOT_H_
 #define AWSIOT_H_
 
@@ -12,24 +11,7 @@
   #include <WiFiMulti.h>
 #endif
 
-//AWS
-#include "sha256.h"
-#include "Utils.h"
-
-//WEBSockets
-#include "Hash.h" // lokale Lib beim Umstieg auf ESP32
-#include <WebSocketsClient.h>
-
-//MQTT PAHO
-#include <SPI.h>
-#include <IPStack.h>
-#include <Countdown.h>
-#include <MQTTClient.h>
-
-//AWS MQTT Websocket
-#include "Client.h"
-#include "AWSWebSocketClient.h"
-#include "CircularByteBuffer.h"
+#include <AWS_IOT.h>
 #include <ArduinoJson.h>
 
 #include "settings.h"
@@ -41,11 +23,8 @@ const int maxMQTTMessageHandlers = 2;
 
 class AwsIotClient : public IMessageBroker {
   private:
-    AWSWebSocketClient awsWSclient;
-    IPStack ipstack;
-    MQTT::Client<IPStack, Countdown, maxMQTTpackageSize, maxMQTTMessageHandlers> *client = NULL;
+    AWS_IOT awsIot;
     void publish_to_topic(const char* topic, const String& message);
-
     //# of connections
     long connection = 0;
     //count messages arrived
@@ -63,4 +42,4 @@ class AwsIotClient : public IMessageBroker {
     void sendmessage(const String cardId, const String product, const float price); 
 };
 #endif
-*/
+

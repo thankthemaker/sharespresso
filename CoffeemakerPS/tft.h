@@ -14,6 +14,8 @@ class TftDisplay : public IDisplay {
         void initDisplay();
         void print_logo();
         void message_print(String msg1, String msg2, int wait);
+        void message_print(String msg1, String msg2, String msg3, int wait);
+        void message_print(String msg1, String msg2, String msg3, String msg4, int wait);
         void message_print_scroll(String msg);
         void message_clear();
 
@@ -23,3 +25,4 @@ class TftDisplay : public IDisplay {
         uint32_t read32(File f);
 };
 #endif
+

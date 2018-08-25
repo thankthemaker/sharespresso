@@ -26,3 +26,4 @@ INfcReader* NfcReaderFactory::createNfcReader(IDisplay *oled, Buzzer *buzzer) {
  return new Rc522NfcReader(oled, buzzer);
 #endif
 }
+

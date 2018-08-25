@@ -3,7 +3,7 @@
 
 #include "Arduino.h";
 #include <PubSubClient.h>;
-#include <ESP8266WiFi.h>;
+#include <WiFi.h>;
 #include "settings.h"
 #include "IMessageBroker.h"
 
@@ -22,3 +22,4 @@ class MqttService : public IMessageBroker {
         void sendmessage(const String cardId, const String product, const float price); 
 };
 #endif
+

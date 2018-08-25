@@ -1,20 +1,28 @@
 #include "ble.h";
 
-BleConnection::BleConnection() : myBT(BLE_RX_PIN, BLE_TX_PIN) {}
+BleConnection::BleConnection() : bleSerial(1) {}
 
 void BleConnection::initBle() {
-  myBT.begin(38400);
+  bleSerial.begin(38400, SERIAL_8N1, BLE_RX_PIN, BLE_TX_PIN);
 }
 
 String BleConnection::readCommand() {
   String BTstring = "";
-  while( myBT.available()) {
-    BTstring +=String(char(myBT.read()));
+  while( bleSerial.available()) {
+    BTstring +=String(char(bleSerial.read()));
     delay(7);
   }
   return BTstring;
 }
 
+
+#ifndef ESP32
 SoftwareSerial BleConnection::getSerial() {
-    return myBT;
+    return bleSerial;
 }
+#else
+ HardwareSerial BleConnection::getSerial() {
+    return bleSerial;
+}
+#endif    
+

@@ -16,6 +16,7 @@ void Rc522NfcReader::registernewcards() {
   EEPROMConfig eepromConfig;
   cardlist_t cardlist =  eepromConfig.readCards();
 
+  Serial.println(F("registernewcards entered"));
   do {
     RFIDcard = 0;
     delay(100); // Make our ESP8266 Watchdog happy
@@ -60,6 +61,7 @@ void Rc522NfcReader::registernewcards() {
   } while ( (millis()-actTime) < 10000 );
   this->oled->message_print(F("Registering"),F("ended"),2000);
   this->buzzer->beep(3);  
+    Serial.println(F("registernewcards exited"));
 }
 
 unsigned long Rc522NfcReader::nfcidread(void) {
@@ -81,3 +83,4 @@ unsigned long Rc522NfcReader::nfcidread(void) {
   this->nfc.PICC_HaltA(); // Stop reading
   return id;
 }
+

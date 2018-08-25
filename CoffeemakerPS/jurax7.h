@@ -12,3 +12,4 @@ class JuraX7 : public ICoffeeMaker {
     //int getIndexForProduct(char productCode);
 };
 #endif
+

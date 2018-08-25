@@ -15,3 +15,4 @@ class Buzzer {
         void beep(byte number);
 };
 #endif
+

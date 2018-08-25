@@ -2,7 +2,7 @@
 #define LOGGER_H_
 
 #include "Arduino.h"
-#include <ESP8266WiFi.h>
+#include <WiFi.h>
 #include <WiFiUdp.h>
 #include <Syslog.h>   //https://github.com/arcao/Syslog
 #include "settings.h"
@@ -22,3 +22,4 @@ class CoffeeLogger {
     String printCredit(int credit); 
 };
 #endif
+

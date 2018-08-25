@@ -8,7 +8,11 @@
 #include "juras95.h";
 #endif
 
-SoftwareSerial myCoffeemaker(JURA_RX_PIN,JURA_TX_PIN); // RX, TX
+#ifndef ESP32
+  SoftwareSerial myCoffeemaker(JURA_RX_PIN,JURA_TX_PIN); // RX, TX
+#else
+  HardwareSerial myCoffeemaker(2);
+#endif
 int inservice=0;
 
 ICoffeeMaker::ICoffeeMaker(IDisplay *oled, Buzzer *buzzer) {
@@ -17,8 +21,15 @@ ICoffeeMaker::ICoffeeMaker(IDisplay *oled, Buzzer *buzzer) {
 }
 
 void ICoffeeMaker::initCoffeemaker() {
-    myCoffeemaker.begin(9600);         // start serial communication at 9600bps
-    myCoffeemaker.listen();    
+#ifndef ESP32
+  myCoffeemaker.begin(9600);         // start serial communication at 9600bps
+  // SoftwareSerial only alows one device listening at a time
+  myCoffeemaker.listen();    
+#else
+  // start serial communication at 9600bps
+  myCoffeemaker.begin(9600, SERIAL_8N1, JURA_RX_PIN, JURA_TX_PIN, false);         
+        
+#endif
 }
 
 String ICoffeeMaker::fromCoffeemaker(){
@@ -86,7 +97,10 @@ boolean ICoffeeMaker::servicetoggle(void){
       return this->inkasso_off(true);
     } else {
       this->oled->message_print(F("Service Mode"),F("exited"),2000);
+#ifndef ESP32
+      //SoftwareSerial only allows one device listening at a time
       myCoffeemaker.listen();
+#endif
       return this->inkasso_on(true);
     }
 }
@@ -101,8 +115,10 @@ boolean ICoffeeMaker::inkasso_on(boolean feedback){
     }
     return true; 
   } else {
-    this->buzzer->beep(2);
-    this->oled->message_print(F("Coffeemaker"),F("not responding!"),2000);  
+    if(feedback) {
+      this->buzzer->beep(2);
+      this->oled->message_print(F("Coffeemaker"),F("not responding!"),2000); 
+    } 
     return false;
   }  
 }
@@ -117,8 +133,10 @@ boolean ICoffeeMaker::inkasso_off(boolean feedback){
     }
     return true;
   } else {
-    this->buzzer->beep(2);
-    this->oled->message_print(F("Coffeemaker"),F("not responding!"),2000);  
+    if(feedback) {
+      this->buzzer->beep(2);
+      this->oled->message_print(F("Coffeemaker"),F("not responding!"),2000);  
+    }
     return false;
   }
 }
@@ -165,4 +183,5 @@ ICoffeeMaker* CoffeeMakerFactory::createCoffeeMaker(IDisplay *oled, Buzzer *buzz
  ICoffeeMaker *coffeemaker = new JuraS95(oled, buzzer);
 #endif
 }
+
 

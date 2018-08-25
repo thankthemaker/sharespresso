@@ -20,3 +20,4 @@ class Pn532NfcReader : public INfcReader{
         unsigned long nfcidread(void);
 };
 #endif
+

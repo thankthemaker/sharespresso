@@ -1,6 +1,11 @@
 #include "oled.h";
 
-SSD1306Brzo display(0x3c, OLED_SDA_PIN, OLED_SCL_PIN);
+#ifdef ESP8266
+  // for ESP8266 use special optimized library 
+  SSD1306Brzo display(0x3c, OLED_SDA_PIN, OLED_SCL_PIN);
+#else
+  SSD1306 display(0x3c, OLED_SDA_PIN, OLED_SCL_PIN);
+#endif
 
 OledDisplay::OledDisplay() {}
 
@@ -11,11 +16,11 @@ void OledDisplay::initDisplay() {
   display.setFont(ArialMT_Plain_16);
   display.setTextAlignment(TEXT_ALIGN_LEFT);
   display.clear();
-  display.drawString(0, 26, "Welcome to Coffeemaker");
+  display.drawString(0, 26, F("Welcome to Coffeemaker"));
   display.display(); 
 }
 
-void print_logo() {}
+void OledDisplay::print_logo() {}
 
 void OledDisplay::message_print(String msg1, String msg2, int wait) {
 #if defined(SERLOG)
@@ -36,6 +41,15 @@ void OledDisplay::message_print(String msg1, String msg2, int wait) {
       display.clear();
   }
 }
+
+void OledDisplay::message_print(String msg1, String msg2, String msg3, int wait) {
+    this->message_print(msg1, msg2, wait);
+}
+
+void OledDisplay::message_print(String msg1, String msg2, String msg3, String msg4, int wait) {
+    this->message_print(msg1, msg2, wait);
+}
+
 
 void OledDisplay::message_print_scroll(String msg) {
   display.setFont(ArialMT_Plain_16);
@@ -66,3 +80,4 @@ void OledDisplay::message_print_scroll(String msg) {
 void OledDisplay::message_clear() {
   display.clear();
 }
+

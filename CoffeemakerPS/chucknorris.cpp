@@ -1,6 +1,4 @@
 #include "chucknorris.h"
-#include <ESP8266HTTPClient.h>
-#include <ArduinoJson.h>
 
 // Number of facts to be cached
 const int factscount = 5;
@@ -56,4 +54,5 @@ String Chucknorris :: getNextChucknorrisFact() {
   String fact = facts[currentFact];
   return fact;
 }
+
 

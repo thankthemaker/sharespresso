@@ -93,3 +93,4 @@ unsigned long Pn532NfcReader::nfcidread(void) {
   }
   return id;
 }
+

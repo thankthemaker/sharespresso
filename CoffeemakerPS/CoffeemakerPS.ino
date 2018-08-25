@@ -14,11 +14,13 @@
  at https://www.heise.de/ct/artikel/Sharespresso-NFC-Bezahlsystem-fuer-Kaffeevollautomaten-3058350.html
  
  Hardware used: 
-  - NodeMCU v1.0 Dev-Board (Amica)
-  - AZDelivery 3er Set 128 x 64 Pixel 0,96 Zoll OLED Display
+  - Sparkfun ESP32 Thing
+  - Waveshare 1.5inch OLED Display Module 128x128 Pixels
   - pn532/mfrc522 rfid card reader (13.56MHz), 
-  - HC-05 bluetooth, male/female jumper wires (optional: ethernet shield, buzzer, button)
+  - HC-05 bluetooth, male/female jumper wires (not used any longer)
   - piezo buzzer 
+
+Read more about the project at http://www.thank-the-maker.org 
 
  The code is provided 'as is', without any guarantuee. Use at your own risk! 
 */
@@ -26,6 +28,7 @@
 // needed for conditional includes to work, don't ask why ;-)
 char trivialfix;
 
+#include <SPI.h>
 #include <Wire.h>
 #include <map>
 #include "logging.h"
@@ -37,10 +40,10 @@ char trivialfix;
 #include "INfcReader.h"
 #include "ICoffeeMaker.h"
 #include "IMessageBroker.h"
-#include "ble.h"
+//#include "ble.h"
 #include "otaupdate.h"
 #include "juragigax8.h"
-#include "journal.h"
+//#include "journal.h"
 #include "chucknorris.h"
 
 #include <MQTTClient.h>
@@ -50,6 +53,10 @@ std::map <char, String> products;
 // general variables (used in loop)
 boolean buttonPress = false;
 boolean tempInkassoOff = false;
+
+boolean registeringStarted = false;
+boolean waitForAnswer = false;
+
 
 String BTstring=""; // contains what is received via bluetooth (from app or other bt client)
 unsigned long actTime; // timer for RFID etc
@@ -67,7 +74,7 @@ pricelist_t pricelist;
 cardlist_t cardlist;
 
 FP<void,String>fp;
-Journal journal;
+//Journal journal;
 Wifi wifi;
 Buzzer *buzzer = new Buzzer();
 IMessageBroker *messageBroker = MessageBrokerFactory::getInstance()->createMessageBroker();
@@ -99,9 +106,11 @@ void setup() {
   
   products['J'] = "Sonstiges";
 
-  journal.initJournal();
+  SPI.begin();      // Init SPI bus, needed by RC522-Reader
+
+  //journal.initJournal();
   logger.log(LOG_DEBUG, "number of products: " + String(coffeemaker->getProducts().size()));
-  logger.log(LOG_INFO, "initializing Display");
+  logger.log(LOG_INFO, F("initializing Display"));
   oled->initDisplay();
   
   oled->message_print(F("sharespresso"), F("starting up"), 1500);
@@ -112,19 +121,18 @@ void setup() {
 //  bleConnection.initBle();
 
   // initialized rfid lib
-  logger.log(LOG_INFO, "initializing rfid reader");
-	SPI.begin();			// Init SPI bus, needed by RC522-Reader
+  logger.log(LOG_INFO, F("initializing rfid reader"));
   nfcReader->initNfcReader();
 
-  logger.log(LOG_INFO, "reading pricelist and cards from EEPROM");
+  logger.log(LOG_INFO, F("reading pricelist and cards from EEPROM"));
   pricelist = eepromConfig.readPricelist();
   cardlist = eepromConfig.readCards();
 
   dumpPricelistAndCards(pricelist, cardlist);
 
   oled->message_print(F("connecting"), F("WIFI"), 0);
-  String ip = wifi.setup_wifi();
-  oled->message_print(F("WIFI:"), ip, 0);
+  wifi.setup_wifi();
+  oled->message_print(F("WLAN-IP:"), WiFi.localIP().toString(), F("SSID:"), WiFi.SSID(), 0);
 
   fp.attach(&executeCommand);
   messageBroker->init(fp);
@@ -138,21 +146,22 @@ void setup() {
     delay(5000);
   }
   if(retries == 0) {
-    logger.log(LOG_ERR, "unable to connect to coffeemaker");
+    logger.log(LOG_ERR, F("unable to connect to coffeemaker"));
     oled->message_print(F("no connection"), F("to coffeemaker"), 0);
-      buzzer->beep(4);
+    buzzer->beep(4);
   } else {
       oled->message_print(F("Ready to brew"), F(""), 2000);
   }
 }
 
 void loop() {  
+    wifi.loop();
     messageBroker->loop();
 
     if(millis() - lastAlive > 15000) {
       lastAlive = millis();
       ++aliveCounter;
-      messageBroker->publish("coffeemaker is alive, count " + String(aliveCounter));
+      messageBroker->publish("coffeemaker is alive, count " + String(aliveCounter) + ", free Heap: " + ESP.getFreeHeap());
     }
  
   // Check if there is a bluetooth connection and command
@@ -170,7 +179,11 @@ void loop() {
 //  }          
 
   // Get key pressed on coffeemaker
-  String message = coffeemaker->fromCoffeemaker();   // gets answers from coffeemaker 
+  String message = "";
+  // Only read answer when not already listening or temporary deactivated inkasso mode 
+  if(!waitForAnswer && !tempInkassoOff) {
+    message = coffeemaker->fromCoffeemaker();   // gets answers from coffeemaker 
+  }
   if (message.length() > 0 && message != ""){
     logger.log("msg=" + message);
     if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
@@ -213,18 +226,25 @@ void loop() {
   }
 
   if(tempInkassoOff == true) {
-     // activate temporary deactivated inkassomode if coffee is ready or after 60 seconds
+     // activate temporary deactivated inkassomode if coffee is ready or after 45 seconds
      int tmpCounter = coffeemaker->readRegister("0004");
-                 Serial.println("counter: " + String(tmpCounter));
-
-     if (coffeecounter+1 == tmpCounter || millis()-tempInkassoOffTime > 60000){  
+     Serial.printf_P(PSTR("tempcounter: %d, expected %d\n"), tmpCounter, coffeecounter+1);
+     delay(200);
+     if (coffeecounter+1 == tmpCounter || millis()-tempInkassoOffTime > 45000){  
       tempInkassoOff = false;
-      while(!coffeemaker->inkasso_on(false)) {
-        delay(200);
+      waitForAnswer = true;
+      for(int i=1; i<=10 && !coffeemaker->inkasso_on(false); i++) {
+        delay(20);
+        if(i==10) {
+          logger.log(LOG_DEBUG, F("Failed to activate inkasso mode"));
+        }
       }
+      waitForAnswer = false;
+      oled->message_print(F("Ready to brew"), F(""), 2000); 
     }
   }
   
+  if(!registeringStarted) {
   // RFID Identification      
   RFIDcard = 0;  
   actTime = millis(); 
@@ -251,27 +271,32 @@ void loop() {
         if(buttonPress == true) { // button pressed on coffeemaker?
            if ((credit - price) > 0) {
             coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
-            delay(50);
+            delay(20);
             coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
-            delay(50);
+            delay(20);
             coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
-            delay(50);
+            delay(20);
             oled->message_print(logger.print10digits(RFIDcard), logger.printCredit(credit), 0);
             eepromConfig.updateCredit(k*6+4, ( credit- price));
             messageBroker->sendmessage (logger.print10digits(RFIDcard), productname, (float)price / 100.0);   
-            journal.writeJournal(String(now()), logger.print10digits(RFIDcard), productname, String((float)price / 100.0));
+//            journal.writeJournal(String(now()), logger.print10digits(RFIDcard), productname, String((float)price / 100.0));
             buttonPress= false;
             price= 0;
             tempInkassoOff = true;
             tempInkassoOffTime = millis();
+            waitForAnswer = true;
             coffeecounter = coffeemaker->readRegister("0004");
-            Serial.println("counter: " + String(coffeecounter));
-            while(!coffeemaker->inkasso_off(false)) {
-              delay(200);
+            delay(100);
+            Serial.printf_P(PSTR("coffeecounter: %d"), coffeecounter);
+            for(int i=1; i<= 10 && !coffeemaker->inkasso_off(false); i++) {
+              delay(20);
+              if(i==10) {
+                logger.log(LOG_DEBUG, F("Failed to activate inkasso mode"));
+              }
             }
-            delay(500);
-            oled->message_print_scroll(chucknorris.getNextChucknorrisFact());
-
+            waitForAnswer = false;
+            //delay(500);
+            //oled->message_print_scroll(chucknorris.getNextChucknorrisFact());
           } 
           else {
             buzzer->beep(2);
@@ -289,6 +314,7 @@ void loop() {
       buzzer->beep(2);
       oled->message_print(String(logger.print10digits(RFIDcard)),F("card unknown!"),2000);
     }           
+  }
   }
 }
 
@@ -316,28 +342,32 @@ void executeCommand(String command) {
     } 
 
     if(command.startsWith("UPDATE") == true) {
-      messageBroker->publish("Firmwareupdate requested");
+      messageBroker->publish(F("Firmwareupdate requested"));
       update.startUpdate();
     }
 
     if(command.startsWith("RESTART") == true) {
-      messageBroker->publish("Gerät wird neu gestartet");
+      messageBroker->publish(F("Gerät wird neu gestartet"));
       ESP.restart();
     }
 
-    if(command.startsWith("JOURNAL") == true) {
-      messageBroker->publish(journal.exportJournal());
-    }
+//    if(command.startsWith("JOURNAL") == true) {
+//      messageBroker->publish(journal.exportJournal());
+//    }
 
     if(command == "?M3"){
+      waitForAnswer = true;
       if(coffeemaker->inkasso_on(true)) {
-        messageBroker->publish("Inkasso-mode turned ON");
+        messageBroker->publish(F("Inkasso-mode turned ON"));
       }
+      waitForAnswer = false;
     }
     if(command == "?M1"){
+      waitForAnswer = true;
       if(coffeemaker->inkasso_off(true)) {
-        messageBroker->publish("Inkasso-mode turned OFF");
+        messageBroker->publish(F("Inkasso-mode turned OFF"));
       }  
+      waitForAnswer = false;
     }
     if(command == "FA:04"){        // small cup ordered via app
       coffeemaker->toCoffeemaker("FA:04\r\n"); 
@@ -372,10 +402,12 @@ void registerCards() {
   actTime = millis();
   buzzer->beep(1);
   oled->message_print(F("Registering"),F("new cards"),0);
-  messageBroker->publish("Registering new cards");
+  messageBroker->publish(F("Registering new cards"));
+  registeringStarted = true;
   nfcReader->registernewcards();
+  registeringStarted = false;
   cardlist = eepromConfig.readCards();
-  messageBroker->publish("Registering ended");
+  messageBroker->publish(F("Registering ended"));
   oled->message_clear();
 }
 
@@ -453,7 +485,7 @@ void updatePricelist(String command) {
   eepromConfig.updatePricelist(pricelist);
   buzzer->beep(1);
   oled->message_print(F("Pricelist"), F("updated!"), 2000);
-  messageBroker->publish("Updated pricelist on device");
+  messageBroker->publish(F("Updated pricelist on device"));
 }
 
 void readPricelist() {
@@ -470,5 +502,6 @@ void readPricelist() {
  //   if (i < 10) bleConnection.getSerial().write(',');
 #endif
   }
-  messageBroker->publish("Received pricelist from device");
+  messageBroker->publish(F("Received pricelist from device"));
 }
+

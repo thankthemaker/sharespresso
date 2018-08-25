@@ -1,7 +1,13 @@
 #ifndef OTAUPDATE_H
 #define OTAUPDATE_H
 
-#include <ESP8266httpUpdate.h>
+#ifndef ESP32
+ #include <ESP8266httpUpdate.h>
+#else
+ #include <ESP32httpUpdate.h>
+#endif
+
+
 #include "logging.h";
 #include "settings.h"
 #include "IDisplay.h"
@@ -17,3 +23,4 @@ class OTAUpdate {
         void startUpdate();
 };
 #endif
+

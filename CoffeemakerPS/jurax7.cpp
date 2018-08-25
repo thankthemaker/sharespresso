@@ -1,15 +1,16 @@
 #include "jurax7.h";
 
 JuraX7::JuraX7(IDisplay *oled, Buzzer *buzzer) : ICoffeeMaker(oled, buzzer) {
-  products['A'] = "Cappuccino";
-  products['B'] = "Espresso";
-  products['C'] = "Espresso dopio";
-  products['H'] = "Milchkaffee";
-  products['D'] = "Kaffee";
-  products['E'] = "Kaffee gross";
-  products['K'] = "Dampf links";
-  products['J'] = "Dampf rechts";
-  products['F'] = "Portion Milch";
-  products['G'] = "Caffee Latte";
+  products['A'] = F("Cappuccino");
+  products['B'] = F("Espresso");
+  products['C'] = F("Espresso dopio");
+  products['H'] = F("Milchkaffee");
+  products['D'] = F("Kaffee");
+  products['E'] = F("Kaffee gross");
+  products['K'] = F("Dampf links");
+  products['J'] = F("Dampf rechts");
+  products['F'] = F("Portion Milch");
+  products['G'] = F("Caffee Latte");
 };
+
 

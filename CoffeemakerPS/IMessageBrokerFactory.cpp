@@ -3,7 +3,7 @@
 #if defined(BROKER_MQTT)
  #include "mqtt.h";
 #elif defined(BROKER_AWS)
- #include "awsIot.h"
+ #include "awsIot1.h"
 #endif
 
 MessageBrokerFactory* MessageBrokerFactory::instance = 0;
@@ -25,3 +25,4 @@ IMessageBroker* MessageBrokerFactory::createMessageBroker() {
  return new AwsIotClient();
 #endif
 }
+

@@ -2,10 +2,13 @@
 #define JURAGIGAX8_H
 
 #include "Arduino.h"
-#include <SoftwareSerial.h>
 #include <map>
 #include "ICoffeeMaker.h"
-
+#ifndef ESP32
+ #include <SoftwareSerial.h>;
+#else
+ #include <HardwareSerial.h>;
+#endif
 
 #ifndef JURA_RX_PIN
   #define JURA_RX_PIN 15
@@ -23,3 +26,4 @@ class JuraGigaX8 : public ICoffeeMaker {
         //int getIndexForProduct(char productCode);
 };
 #endif
+

@@ -36,3 +36,4 @@ class EEPROMConfig {
         void deleteCredit(int address, int credit);
 };
 #endif
+

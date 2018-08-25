@@ -3,16 +3,12 @@
 
 #include "Arduino.h"
 #include "IDisplay.h"
-#ifdef ESP8266
-  // for ESP8266 use special optimized library 
-  #include "SSD1306Brzo.h" //OLED I2C
-#else
-  #include "SSD1306.h"
-#endif
+#include <U8g2lib.h>
+#include <SPI.h>
 
-class OledDisplay : public IDisplay {
+class OledSpiDisplay : public IDisplay {
     public:
-        OledDisplay();
+        OledSpiDisplay();
 
         void initDisplay();
         void print_logo();

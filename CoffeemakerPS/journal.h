@@ -14,3 +14,4 @@ class Journal {
     String exportJournal();
 };
 #endif
+

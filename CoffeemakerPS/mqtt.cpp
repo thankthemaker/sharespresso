@@ -33,18 +33,18 @@ void MqttService::loop() {
 void MqttService::reconnect() {
   // Loop until we're reconnected
   while (!this->mqttClient.connected()) {
-    Serial.print("Attempting MQTT connection...");
+    Serial.print(F("Attempting MQTT connection..."));
     // Attempt to connect
     if (this->mqttClient.connect("Jura Giga X8", MQTT_USERNAME, MQTT_PASSWORD)) {
-      Serial.println("connected");
+      Serial.println(F("connected"));
       // Once connected, publish an announcement...
       this->mqttClient.publish(TOPIC_OUT, "Jura Giga X8 is ready now...");
       // ... and resubscribe
       this->mqttClient.subscribe(TOPIC_IN);
     } else {
-      Serial.print("failed, rc=");
+      Serial.print(F("failed, rc="));
       Serial.print(this->mqttClient.state());
-      Serial.println(" try again in 5 seconds");
+      Serial.println(F(" try again in 5 seconds"));
       // Wait 5 seconds before retrying
       delay(5000);
     }
@@ -60,3 +60,4 @@ void MqttService::publish(String message) {
 void MqttService::sendmessage(const String cardId, const String product, const float price) {
   this->publish(cardId + ";" + product + ";" + price);  
 }
+

@@ -2,13 +2,17 @@
 #define WIFI_H
 
 #include "Arduino.h";
-#include <ESP8266WiFi.h>;
+#include <WiFi.h>;
+#include <WiFiMulti.h>;
 #include "settings.h"
 
 class Wifi {  
     public:
+        WiFiMulti wifiMulti;
         WiFiClient espClient;
         Wifi();
-        String setup_wifi();
+        void loop();
+        void setup_wifi();
 };
 #endif
+

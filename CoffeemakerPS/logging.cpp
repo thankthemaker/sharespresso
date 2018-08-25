@@ -1,7 +1,7 @@
 #include "logging.h"
 
 CoffeeLogger::CoffeeLogger() : syslog(udpClient, SYSLOG_SERVER, SYSLOG_PORT, DEVICE_HOSTNAME, APP_NAME, LOG_KERN){
-  Serial.println("staring syslog");
+  Serial.println(F("staring syslog"));
  }
 
 String CoffeeLogger::print10digits(unsigned long number) {
@@ -60,3 +60,4 @@ void CoffeeLogger::log(uint16_t pri, String msg) {
   }
 #endif
 }
+
