@@ -56,32 +56,94 @@ void OledSpiDisplay::message_print(String msg1, String msg2, String msg3, String
     }
 }
 
+/** 
+ * scroll a text of arraylines from bottom of display
+ * to the top of the display and then out of display  
+ */
+void OledSpiDisplay::message_print_scroll_array(String msg[], int msgSize)
+{
+  u8g2.setFont(u8g2_font_ncenR12_tr);
 
-void OledSpiDisplay::message_print_scroll(String msg) {
-  u8g2.setFont(u8g2_font_ncenB12_tr);
-  int fontsize = 12;
-  int displaywidth = 128;
-  int displayheight = 128;
+  for (int ypos = u8g2.getDisplayHeight(); ypos > -(msgSize * (u8g2.getMaxCharHeight() + 1)) ; ypos--)
+  {
+    u8g2.clearBuffer();
 
-  int stringwidth = u8g2.getStrWidth(msg.c_str());
-  
-  // cannot calculate exact textlines because of word-wraps 
-  // -> add three lines for offset.
-  // change this if you have an idea how to calculate exact textlines 
-  // from a given msg. 
-  int lines = (stringwidth / displaywidth) + 3;
+    for (int i = 0; i < msgSize && msg[i] != NULL; i++) {
+      //Serial.println(msg[i]);
+      u8g2.setCursor(0, ypos + ((u8g2.getMaxCharHeight() + 1) * i));
+      u8g2.print(msg[i]);
+    }
 
-  for (int i=128; i>-(lines * fontsize); i--){
-    u8g2.clearBuffer();          // clear the internal memory
-    u8g2.drawStr(0, i, msg.c_str());
-    u8g2.sendBuffer();          // transfer internal memory to the display
+    u8g2.sendBuffer();
     // scrollspeed
     delay(50);
   }
   delay(1);
 }
 
+/**
+ * Splits the text in an array of lines
+ * and invokes the message_print_scroll_array function
+ * to display the text vertically scrolling
+ */
+void OledSpiDisplay::message_print_scroll(String msg)
+{
+  u8g2.setFont(u8g2_font_ncenR12_tr);
+  // TODO use vector or list instead of static array. At the end of the method
+  // this static array is copied into a fitting array
+  String lines[30];
+  int currentline = 0;
+
+  const char *msgchars = msg.c_str();
+
+  String textline;
+  String newWord = "";
+
+  textline = "";
+
+  // iterate through text, extract the words and put them into lines
+  // not bigger than the displaywidth
+  while (*msgchars) {
+    while (*msgchars) {
+      newWord = newWord + *msgchars;
+      if (*msgchars == ' ') {
+        *msgchars++;
+        break;
+      }
+      *msgchars++;
+    }
+    if (u8g2.getStrWidth((textline + newWord).c_str()) < u8g2.getDisplayWidth()) {
+      textline = textline + newWord;
+      newWord = "";
+    } else {
+      lines[currentline++] = textline;
+      textline = newWord;
+      newWord = "";
+    }
+  }
+
+  lines[currentline] = textline;
+
+  // delete whitespaces at the end of textlines and copy lines to new array of correct size
+  int linesArraySize = currentline + 1;
+  String linesWithFittingArray[linesArraySize];
+
+  currentline = 0;
+  while (currentline < linesArraySize && lines[currentline] != NULL) {
+    long pos = lines[currentline].length();
+    if (lines[currentline].substring(pos - 1) == " ") {
+      lines[currentline] = lines[currentline].substring(0, pos - 1);
+    }
+    linesWithFittingArray[currentline] = lines[currentline];
+    currentline++;
+  }
+
+  int linesWithFittingArraySize = (sizeof(linesWithFittingArray) / sizeof(linesWithFittingArray[0]));
+
+  // invoke method to draw the lines to the display
+  this->message_print_scroll_array(linesWithFittingArray, linesWithFittingArraySize);
+}
+
 void OledSpiDisplay::message_clear() {
   u8g2.clearDisplay();
 }
-
