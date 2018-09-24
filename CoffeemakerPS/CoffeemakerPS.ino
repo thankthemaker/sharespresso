@@ -295,8 +295,8 @@ void loop() {
               }
             }
             waitForAnswer = false;
-            //delay(500);
-            //oled->message_print_scroll(chucknorris.getNextChucknorrisFact());
+            delay(500);
+            oled->message_print_scroll(chucknorris.getNextChucknorrisFact());
           } 
           else {
             buzzer->beep(2);
