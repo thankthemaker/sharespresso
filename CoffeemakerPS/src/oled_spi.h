@@ -20,4 +20,3 @@ class OledSpiDisplay : public IDisplay {
         void message_clear();
 };
 #endif
-

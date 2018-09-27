@@ -28,6 +28,7 @@ Read more about the project at http://www.thank-the-maker.org
 // needed for conditional includes to work, don't ask why ;-)
 char trivialfix;
 
+#include <rom/rtc.h>
 #include <SPI.h>
 #include <Wire.h>
 #include <map>
@@ -64,6 +65,7 @@ unsigned long buttonTime; // timer for button press
 unsigned long tempInkassoOffTime; // timer for temporary inkasso mode press 
 unsigned long lastAlive; // time of the last Alive signal send
 unsigned long aliveCounter = 0;
+unsigned long lastRegisterRead = 0;
 
 boolean override = false;  // to override payment system by the voice-control/button-press app
 unsigned long RFIDcard = 0;
@@ -117,6 +119,13 @@ void setup() {
 //  oled->print_logo();
   coffeemaker->initCoffeemaker(); // start serial communication at 9600bps
 
+  int retries = 10;
+  while(!coffeemaker->inkasso_off(false) && retries > 0) {
+    logger.log(LOG_INFO, F("Unable to turn off Inkasso-Mode, retrying in 500ms"));
+    delay(500);
+  }
+
+
 //  logger.log(LOG_INFO, "initializing bluetooth module");
 //  bleConnection.initBle();
 
@@ -139,7 +148,7 @@ void setup() {
   ntpClient.setupNtp();
   
   // activate coffemaker connection and inkasso mode
-  int retries = 5;
+  retries = 5;
   while(!coffeemaker->inkasso_on(true) && retries > 0) {
     logger.log(LOG_INFO, "retrying in 5 seconds, retries left: " + String(retries));
     retries--;
@@ -152,6 +161,13 @@ void setup() {
   } else {
       oled->message_print(F("Ready to brew"), F(""), 2000);
   }
+
+#ifdef IFTTT
+  HTTPClient http;
+  http.setTimeout(5000);
+  http.begin("https://maker.ifttt.com/trigger/" + String(IFTTT_EVENT) + "/with/key/" + String(IFTTT_KEY) + "?value1=" + getRebootReason());
+  http.GET();
+#endif
 }
 
 void loop() {  
@@ -225,12 +241,14 @@ void loop() {
     override == false;
   }
 
-  if(tempInkassoOff == true) {
+  if(tempInkassoOff == true && millis()-lastRegisterRead > 1000) {
+    lastRegisterRead = millis();
      // activate temporary deactivated inkassomode if coffee is ready or after 45 seconds
      int tmpCounter = coffeemaker->readRegister("0004");
      Serial.printf_P(PSTR("tempcounter: %d, expected %d\n"), tmpCounter, coffeecounter+1);
      delay(200);
      if (coffeecounter+1 == tmpCounter || millis()-tempInkassoOffTime > 45000){  
+      logger.log(LOG_DEBUG, "Stop reading register, counter reached=" + (coffeecounter+1 == tmpCounter));
       tempInkassoOff = false;
       waitForAnswer = true;
       for(int i=1; i<=10 && !coffeemaker->inkasso_on(false); i++) {
@@ -295,8 +313,8 @@ void loop() {
               }
             }
             waitForAnswer = false;
-            delay(500);
-            oled->message_print_scroll(chucknorris.getNextChucknorrisFact());
+            //delay(500);
+            //oled->message_print_scroll(chucknorris.getNextChucknorrisFact());
           } 
           else {
             buzzer->beep(2);
@@ -328,8 +346,14 @@ void executeCommand(String command) {
     if(command == "LLL"){  // 'L' for 'list' sends RFID card numbers to app   
       listCards();
     }
-    if(command.startsWith("DDD") == true){
-      deleteCard(command);
+    if(command.startsWith("DDD") == true) {
+      String indexOrNumber = command;
+      indexOrNumber.remove(0,3); // removes "DDD" and leaves the index
+      if(indexOrNumber.length() != 10) {
+        deleteCardByIndex(indexOrNumber);      
+      } else {
+        deleteCardByCardnumber(indexOrNumber);
+      }
     }    
     if((command.startsWith("CCC") == true) ){
       chargeCard(command);
@@ -415,22 +439,21 @@ void listCards() {
   String cards = "";
   for(int i=0;i<MAX_CARDS;i++){
     unsigned long card=cardlist.cards[i].card;
+    if(card != 0) {
 #ifdef BLE_ENABLED
-//    bleConnection.getSerial().print(logger.print10digits(card)); 
+//      bleConnection.getSerial().print(logger.print10digits(card)); 
 #endif
-    if(card > 0) cards += logger.print10digits(card);
-    if (i < (MAX_CARDS-1)) {
+      if (i < (MAX_CARDS-1)) {
 #ifdef BLE_ENABLED
-//     bleConnection.getSerial().write(',');  // write comma after card number if not last
+//       bleConnection.getSerial().write(',');  // write comma after card number if not last
 #endif
-      if(card > 0) cards += ",";
+      }
+      messageBroker->publish("CARDS[" + String(i) + "]:" + logger.print10digits(card));
     }
   }
-  messageBroker->publish("CARDS:" + cards);
 }
 
-void deleteCard(String command) {
-  command.remove(0,3); // removes "DDD" and leaves the index
+void deleteCardByIndex(String command) {
   int index = command.toInt();
   index--; // list picker index (app) starts at 1, while RFIDcards array starts at 0
   unsigned long card= cardlist.cards[index].card;
@@ -440,6 +463,28 @@ void deleteCard(String command) {
   eepromConfig.deleteCredit(index*6+2, 0);
   buzzer->beep(1);
   messageBroker->publish("Deleted card: " + String(card));
+}
+
+void deleteCardByCardnumber(String command) {
+  unsigned long card = strtoull(command.c_str(), NULL, 10);
+  boolean found = false;
+  oled->message_print(logger.print10digits(card), F("deleting"), 2000);    
+  cardlist_t cardlist = eepromConfig.readCards();
+  for(int i=0; i<MAX_CARDS; i++) {
+    if(cardlist.cards[i].card == card) {
+      Serial.println("found card at slot: " + String(i));
+      found = true;
+      cardlist.cards[i].card=0;
+      eepromConfig.updateCards(cardlist);
+      buzzer->beep(1);
+      messageBroker->publish("Deleted card: " + String(card));
+      break;
+    }
+  }
+  if(!found) {
+    String message = "card NOT found: " + String(card);
+    messageBroker->publish(message);
+  }
 }
 
 void chargeCard(String command) {
@@ -505,3 +550,39 @@ void readPricelist() {
   messageBroker->publish(F("Received pricelist from device"));
 }
 
+String getRebootReason() {
+  switch (rtc_get_reset_reason(0)) {
+    case 1: 
+      return(F("POWERON_RESET"));
+    case 3:
+      return(F("SW_RESET"));     
+    case 4:
+      return(F("OWDT_RESET"));      
+    case 5:
+      return(F("DEEPSLEEP_RESET"));
+    case 6: 
+      return(F("SDIO_RESET"));
+    case 7:
+      return(F("TG0WDT_SYS_RESET"));
+    case 8:
+      return(F("TG1WDT_SYS_RESET"));
+    case 9:
+      return(F("RTCWDT_SYS_RESET"));
+    case 10:
+      return(F("INTRUSION_RESET"));
+    case 11:
+      return(F("TGWDT_CPU_RESET"));
+    case 12:
+      return(F("SW_CPU_RESET"));
+    case 13:
+      return(F("RTCWDT_CPU_RESET"));
+    case 14:
+      return(F("EXT_CPU_RESET"));
+    case 15:
+      return(F("RTCWDT_BROWN_OUT_RESET"));
+    case 16:
+      return(F("RTCWDT_RTC_RESET"));
+    default:  
+      return(F("NO_MEAN"));     
+  }
+}
