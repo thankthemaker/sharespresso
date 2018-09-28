@@ -91,7 +91,7 @@ void OledSpiDisplay::message_print_scroll(String msg)
   u8g2.setFont(u8g2_font_ncenR12_tr);
   // TODO use vector or list instead of static array. At the end of the method
   // this static array is copied into a fitting array
-  String lines[30];
+  String lines[40];
   int currentline = 0;
 
   const char *msgchars = msg.c_str();
