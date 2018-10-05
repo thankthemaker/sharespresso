@@ -64,14 +64,19 @@ void OledSpiDisplay::message_print_scroll_array(String msg[], int msgSize)
 {
   u8g2.setFont(u8g2_font_ncenR12_tr);
 
-  for (int ypos = u8g2.getDisplayHeight(); ypos > -(msgSize * (u8g2.getMaxCharHeight() + 1)) ; ypos--)
+  // iterate from end of display to top of display
+  for (int ypos = u8g2.getDisplayHeight() + u8g2.getMaxCharHeight(); ypos > -(msgSize * (u8g2.getMaxCharHeight() + 1)) ; ypos--)
   {
     u8g2.clearBuffer();
 
+    // iterate through lines
     for (int i = 0; i < msgSize && msg[i] != NULL; i++) {
-      //Serial.println(msg[i]);
-      u8g2.setCursor(0, ypos + ((u8g2.getMaxCharHeight() + 1) * i));
-      u8g2.print(msg[i]);
+      int lineYpos = ypos + ((u8g2.getMaxCharHeight() + 1) * i);
+      // render only lines which are in the visible area of the display. Otherwise there is an overflow of type u8g2_uint_t in setCursor
+      if ((lineYpos <= (u8g2.getDisplayHeight() + u8g2.getMaxCharHeight()) && lineYpos > -(u8g2.getMaxCharHeight()))) {
+        u8g2.setCursor(0, lineYpos);
+        u8g2.print(msg[i]);
+      }
     }
 
     u8g2.sendBuffer();
