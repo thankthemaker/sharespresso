@@ -65,7 +65,7 @@ void OledSpiDisplay::message_print_scroll_array(String msg[], int msgSize)
   u8g2.setFont(u8g2_font_ncenR12_tr);
 
   // iterate from end of display to top of display
-  for (int ypos = u8g2.getDisplayHeight() + u8g2.getMaxCharHeight(); ypos > -(msgSize * (u8g2.getMaxCharHeight() + 1)) ; ypos--)
+  for (int ypos = u8g2.getDisplayHeight() + u8g2.getMaxCharHeight(); ypos > -(msgSize * (u8g2.getMaxCharHeight() + 1)); ypos--)
   {
     u8g2.clearBuffer();
 
