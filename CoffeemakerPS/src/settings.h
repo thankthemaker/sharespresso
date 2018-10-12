@@ -89,6 +89,9 @@
   #define JURA_RX_PIN         16
   #define JURA_TX_PIN         17 
 
+
+
+
  //#ifdef PN532
   #define PN532_SS            (2)
   #define PN532_SCK           (14)
