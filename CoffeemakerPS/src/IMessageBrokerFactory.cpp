@@ -4,7 +4,7 @@
  #include "mqtt.h";
 #elif defined(BROKER_AWS)
 #ifdef ESP32
-// #include "awsIot1.h"
+ #include "awsIot1.h"
 #else
  #include "awsIot.h"
 #endif
