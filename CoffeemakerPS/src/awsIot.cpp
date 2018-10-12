@@ -1,4 +1,4 @@
-/*
+#ifdef ESP8266
 #include "awsIot.h";
 
 static FP<void,String> fp;
@@ -152,4 +152,4 @@ void AwsIotClient::reconnect() {};
 void AwsIotClient::publish(String message) {
         this->publish_to_topic(TOPIC_OUT, message);
  };
-*/
+ #endif

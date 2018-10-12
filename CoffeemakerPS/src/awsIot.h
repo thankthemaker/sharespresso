@@ -1,16 +1,12 @@
-/*
+#ifdef ESP8266
 #ifndef AWSIOT_H_
 #define AWSIOT_H_
 
 #include <Arduino.h>
 #include <Stream.h>
-
 #include <WiFi.h>
-#ifdef ESP8266
-  #include <ESP8266WiFiMulti.h>
-#else
-  #include <WiFiMulti.h>
-#endif
+#include <ESP8266WiFi.h>
+#include <ESP8266WiFiMulti.h>
 
 //AWS
 #include "sha256.h"
@@ -63,4 +59,4 @@ class AwsIotClient : public IMessageBroker {
     void sendmessage(const String cardId, const String product, const float price); 
 };
 #endif
-*/
+#endif

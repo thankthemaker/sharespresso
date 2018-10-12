@@ -28,7 +28,9 @@ Read more about the project at http://www.thank-the-maker.org
 // needed for conditional includes to work, don't ask why ;-)
 char trivialfix;
 
+#ifdef ESP32
 #include <rom/rtc.h>
+#endif
 #include <SPI.h>
 #include <Wire.h>
 #include <map>
@@ -313,8 +315,8 @@ void loop() {
               }
             }
             waitForAnswer = false;
-            //delay(500);
-            //oled->message_print_scroll(chucknorris.getNextChucknorrisFact());
+            delay(500);
+            oled->message_print_scroll(chucknorris.getNextChucknorrisFact());
           } 
           else {
             buzzer->beep(2);
@@ -550,6 +552,7 @@ void readPricelist() {
   messageBroker->publish(F("Received pricelist from device"));
 }
 
+#ifdef ESP32
 String getRebootReason() {
   switch (rtc_get_reset_reason(0)) {
     case 1: 
@@ -586,3 +589,8 @@ String getRebootReason() {
       return(F("NO_MEAN"));     
   }
 }
+#else
+String getRebootReason() {
+  return ESP.getResetInfo();
+}
+#endif

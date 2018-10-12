@@ -1,3 +1,4 @@
+#ifdef ESP32
 #ifndef AWSIOT_H_
 #define AWSIOT_H_
 
@@ -5,11 +6,7 @@
 #include <Stream.h>
 
 #include <WiFi.h>
-#ifdef ESP8266
-  #include <ESP8266WiFiMulti.h>
-#else
-  #include <WiFiMulti.h>
-#endif
+#include <WiFiMulti.h>
 
 #include <AWS_IOT.h>
 #include <ArduinoJson.h>
@@ -42,4 +39,4 @@ class AwsIotClient : public IMessageBroker {
     void sendmessage(const String cardId, const String product, const float price); 
 };
 #endif
-
+#endif
