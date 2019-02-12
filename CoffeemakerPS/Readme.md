@@ -42,4 +42,4 @@ If you'd like to use a BLE-module and the native Android App, please follow the 
 Ionic3-App :)
 
 ## Understand the modules
-If you'd like to make changes to the code, please take a look at the [documentation of the modules](Modules.md).
+If you'd like to make changes to the code, please take a look at the [documentation of the modules](src/Modules.md).
