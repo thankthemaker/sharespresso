@@ -121,9 +121,10 @@ void setup() {
 //  oled->print_logo();
   coffeemaker->initCoffeemaker(); // start serial communication at 9600bps
 
-  int retries = 10;
+  int retries = 20;
   while(!coffeemaker->inkasso_off(false) && retries > 0) {
     logger.log(LOG_INFO, F("Unable to turn off Inkasso-Mode, retrying in 500ms"));
+    retries--;
     delay(500);
   }
 
@@ -438,20 +439,20 @@ void registerCards() {
 }
 
 void listCards() {
-  String cards = "";
-  for(int i=0;i<MAX_CARDS;i++){
+  String cards = "CARDS:";
+  int i=0;
+  for(;i<MAX_CARDS;i++){
     unsigned long card=cardlist.cards[i].card;
     if(card != 0) {
-#ifdef BLE_ENABLED
-//      bleConnection.getSerial().print(logger.print10digits(card)); 
-#endif
-      if (i < (MAX_CARDS-1)) {
-#ifdef BLE_ENABLED
-//       bleConnection.getSerial().write(',');  // write comma after card number if not last
-#endif
-      }
-      messageBroker->publish("CARDS[" + String(i) + "]:" + logger.print10digits(card));
+      cards += logger.print10digits(card) + ",";
     }
+    if(i%25 == 0) {
+      messageBroker->publish(cards);
+      cards = "CARDS:";
+    }
+  }
+  if(!cards.equals("CARDS:")) {
+    messageBroker->publish(cards);
   }
 }
 
