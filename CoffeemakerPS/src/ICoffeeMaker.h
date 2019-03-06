@@ -27,15 +27,5 @@ class ICoffeeMaker {
         std::map <char, String>  getProducts();
         int getIndexForProduct(char productCode);
 };
-
-class CoffeeMakerFactory {
-    public:
-        static CoffeeMakerFactory* getInstance();
-        ICoffeeMaker* createCoffeeMaker(IDisplay *oled, Buzzer *buzzer);
-
-    private:
-        CoffeeMakerFactory();    
-        static CoffeeMakerFactory *instance;    
-};
 #endif
 

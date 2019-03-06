@@ -162,26 +162,4 @@ int ICoffeeMaker::getIndexForProduct(char productCode) {
   return index >= 0 ? index : 0;
 }
 
-CoffeeMakerFactory* CoffeeMakerFactory::instance = 0;
-
-CoffeeMakerFactory::CoffeeMakerFactory() {}
-
-CoffeeMakerFactory* CoffeeMakerFactory::getInstance() {
-    if (instance == 0){
-        instance = new CoffeeMakerFactory();
-    }
-
-    return instance;
-}
-
-ICoffeeMaker* CoffeeMakerFactory::createCoffeeMaker(IDisplay *oled, Buzzer *buzzer) {
-#if defined(GIGAX8)
- ICoffeeMaker *coffeemaker = new JuraGigaX8(oled, buzzer);
-#elif defined(X7)
- ICoffeeMaker *coffeemaker = new JuraX7(oled, buzzer);
-#elif defined(S95)
- ICoffeeMaker *coffeemaker = new JuraS95(oled, buzzer);
-#endif
-}
-
 

@@ -3,11 +3,7 @@
 #if defined(BROKER_MQTT)
  #include "mqtt.h";
 #elif defined(BROKER_AWS)
-#ifdef ESP32
  #include "awsIot1.h"
-#else
- #include "awsIot.h"
-#endif
 #endif
 
 MessageBrokerFactory* MessageBrokerFactory::instance = 0;

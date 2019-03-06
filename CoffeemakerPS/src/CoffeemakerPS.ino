@@ -43,10 +43,9 @@ char trivialfix;
 #include "INfcReader.h"
 #include "ICoffeeMaker.h"
 #include "IMessageBroker.h"
-//#include "ble.h"
-#include "otaupdate.h"
 #include "juragigax8.h"
-//#include "journal.h"
+#include "oled_spi.h"
+#include "rc522nfc.h"
 #include "chucknorris.h"
 
 #include <MQTTClient.h>
@@ -82,9 +81,8 @@ FP<void,String>fp;
 Wifi wifi;
 Buzzer *buzzer = new Buzzer();
 IMessageBroker *messageBroker = MessageBrokerFactory::getInstance()->createMessageBroker();
-IDisplay *oled = DisplayFactory::getInstance()->createDisplay();
-INfcReader *nfcReader = NfcReaderFactory::getInstance()->createNfcReader(oled, buzzer);
-//ICoffeeMaker *coffeemaker =  CoffeeMakerFactory::getInstance()->createCoffeeMaker(oled, buzzer);
+IDisplay *oled = new OledSpiDisplay();
+INfcReader *nfcReader = new Rc522NfcReader(oled, buzzer);
 ICoffeeMaker *coffeemaker = new JuraGigaX8(oled, buzzer);
 Chucknorris chucknorris;
 
@@ -92,7 +90,6 @@ NtpClient ntpClient;
 //BleConnection bleConnection;
 CoffeeLogger logger;
 EEPROMConfig eepromConfig;
-OTAUpdate update(oled);
 
 void setup() {
 #if defined(SERLOG) || defined(DEBUG)
@@ -368,19 +365,10 @@ void executeCommand(String command) {
       readPricelist();
     } 
 
-    if(command.startsWith("UPDATE") == true) {
-      messageBroker->publish(F("Firmwareupdate requested"));
-      update.startUpdate();
-    }
-
     if(command.startsWith("RESTART") == true) {
       messageBroker->publish(F("Gerät wird neu gestartet"));
       ESP.restart();
     }
-
-//    if(command.startsWith("JOURNAL") == true) {
-//      messageBroker->publish(journal.exportJournal());
-//    }
 
     if(command == "?M3"){
       waitForAnswer = true;

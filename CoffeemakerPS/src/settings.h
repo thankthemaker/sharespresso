@@ -39,27 +39,20 @@
  #define SYSLOG_SERVER       "***"
  #define SYSLOG_PORT         514
 
-//#define JOURNAL
-
 //#define DEBUG // some more logging
 
 // Choose coffeemaker
 #define GIGAX8
-//#define X7
-//#define S95
 
  // Choose IoT-Device Sparkfun ESP32 or NodeMCU
  //#define NODEMCU_1_0
  #define SPARKFUN
 
  // Choose NFC-Reader Adafruit PN532 or RC522
- //#define PN532
  #define RC522
 
  // Choose display type OLED or TFT
- //#define DISPLAY_OLED
  #define DISPLAY_OLED_SPI
- //#define DISPLAY_TFT
 
 //#define BROKER_MQTT
 #define BROKER_AWS
@@ -88,9 +81,6 @@
   #define BLE_TX_PIN          27
   #define JURA_RX_PIN         16
   #define JURA_TX_PIN         17 
-
-
-
 
  //#ifdef PN532
   #define PN532_SS            (2)
