@@ -25,15 +25,7 @@ class EEPROMConfig {
         EEPROMConfig();
 
         pricelist_t readPricelist();
-        cardlist_t readCards();
-
         void updatePricelist(pricelist_t pricelist);
-        void updateCards(cardlist_t);
-
-        int readCredit(int address);
-        void updateCredit(int address, int credit);
-        void deleteCard(int address, long card);
-        void deleteCredit(int address, int credit);
 };
 #endif
 

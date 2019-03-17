@@ -9,17 +9,13 @@
 
 class CoffeeLogger {
   private:
-    WiFiUDP udpClient;
-    Syslog syslog;
-  
+    WiFiUDP udpClient;  
   public:
     CoffeeLogger();
-
     void log(String msg);
     void log(uint16_t pri, String msg);
     String print2digits(int number);
-    String print10digits(unsigned long number);
-    String printCredit(int credit); 
+    String print12digits(unsigned long number);
 };
 #endif
 

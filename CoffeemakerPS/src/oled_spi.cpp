@@ -47,7 +47,7 @@ void OledSpiDisplay::message_print(String msg1, String msg2, String msg3, String
     }
     if (msg4 != "") {
       u8g2.setFont(u8g2_font_ncenB10_tr);
-      u8g2.drawStr(0, 80, msg4.c_str());
+      u8g2.drawStr(0, 95, msg4.c_str());
     }
     u8g2.sendBuffer();
     if (wait > 0) { 
