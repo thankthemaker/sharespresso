@@ -53,9 +53,11 @@ char trivialfix;
 std::map <char, String> products;
 
 // general variables (used in loop)
-boolean buttonPress = false;
+boolean coffeeSelected = false;
 boolean registeringStarted = false;
 
+boolean coffeeSelectionRunning = false;
+unsigned long coffeeSelectionStartTime = 0;
 
 String BTstring=""; // contains what is received via bluetooth (from app or other bt client)
 unsigned long actTime; // timer for RFID etc
@@ -65,7 +67,6 @@ unsigned long lastAlive; // time of the last Alive signal send
 unsigned long aliveCounter = 0;
 unsigned long lastRegisterRead = 0;
 
-boolean override = false;  // to override payment system by the voice-control/button-press app
 unsigned long RFIDcard = 0;
 int price=0;
 int coffeecounter = 0;
@@ -162,59 +163,67 @@ void setup() {
 void loop() {  
     wifi.loop();
     messageBroker->loop();
-
     if(millis() - lastAlive > 15000) {
       lastAlive = millis();
       ++aliveCounter;
       messageBroker->publish("coffeemaker is alive, count " + String(aliveCounter) + ", free Heap: " + ESP.getFreeHeap());
     }
- 
-  // Get key pressed on coffeemaker
+
+  // alwaya get key pressed on coffeemaker
   String message = "";
   message = coffeemaker->fromCoffeemaker();   // gets answers from coffeemaker 
-  if (message.length() > 0 && message != ""){
-    logger.log("msg=" + message);
-    if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
-      buttonPress = true;
-      buttonTime = millis();
 
-      //std::map<char,String>::iterator it = coffeemaker->getProducts().find(message.charAt(3));
-      std::map<char,String>::iterator it = products.find(message.charAt(3));
-      //if(it == coffeemaker->getProducts().end()) {
-      if(it == products.end()) {
-        // Key not found
-        logger.log("unknown product=" + String(message.charAt(3)));
-        oled->message_print(F("Error unknown"), F("product"), 2000);
-        buttonPress = false;   
+  // but only handle button press if coffeeselection is running
+  if (coffeeSelectionRunning && !coffeeSelected) {
+    if (millis() - coffeeSelectionStartTime <= 10000) {
+      if (message.length() > 0 && message != ""){
+        logger.log("msg=" + message);
+        if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
+          coffeeSelected = true;
+          buttonTime = millis();
+
+          //std::map<char,String>::iterator it = coffeemaker->getProducts().find(message.charAt(3));
+          std::map<char,String>::iterator it = products.find(message.charAt(3));
+          //if(it == coffeemaker->getProducts().end()) {
+          if(it == products.end()) {
+            // Key not found
+            logger.log("unknown product=" + String(message.charAt(3)));
+            oled->message_print(F("Error unknown"), F("product"), 2000);
+            coffeeSelected = false;   
+          } else {
+            // Key found -- the corresponding item is in:
+            productname = it->second;
+          }
+          price = pricelist.prices[coffeemaker->getIndexForProduct(message.charAt(3))];
+          oled->message_print(F("Product"), productname, 0);
+          coffeeSelected = true;
+        }
       } else {
-        // Key found -- the corresponding item is in:
-        productname = it->second;
+        int countdown = 10 - ((int)  ((millis() - coffeeSelectionStartTime)/1000));
+        oled->message_print(F(""), F("Choose product"), "           " + String(countdown) + " sec", "", 0);
       }
-      price = pricelist.prices[coffeemaker->getIndexForProduct(message.charAt(3))];
-      oled->message_print(F("Product"), productname, 0);
-      // boss mode, he does not pay
-      if (override == true){
-        price = 0;
-      }
-    }
-  }
-
-  // User has five seconds to pay
-  if (buttonPress == true) {
-    if (millis()-buttonTime > 5000){  
+    } else {
       buzzer->beep(2);
-      buttonPress = false;
-      price = 0;
+      coffeeSelectionRunning = false;
       oled->message_clear();
     }
   }
-  if (buttonPress == true && override == true){
-    coffeemaker->toCoffeemaker("?ok\r\n");
-    buttonPress == false;
-    override == false;
+
+  if (coffeeSelected == true){
+    coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
+    delay(20);
+    coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
+    delay(20);
+    coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
+    delay(20);
+    messageBroker->sendmessage(logger.print12digits(RFIDcard), productname, (float)price / 100.0);   
+    delay(500);
+    oled->message_print_scroll(chucknorris.getNextChucknorrisFact());    
+    coffeeSelected = false;
+    coffeeSelectionRunning  = false;
   }
   
-  if(!registeringStarted) {
+  if(!registeringStarted && !coffeeSelectionRunning) {
     // RFID Identification      
     RFIDcard = 0;  
     actTime = millis(); 
@@ -227,45 +236,28 @@ void loop() {
     } while ( (millis()-actTime) < 60 );  
 
     if (RFIDcard != 0) {
-//      int k = MAX_CARDS;
-//      for(int i=0;i<MAX_CARDS;i++){         
-//        if (((RFIDcard) == (cardlist.cards[i].card)) && (RFIDcard != 0 )){
-//          k = i;
-            
+      buzzer->beep(1);
         oled->message_print(F("Checking"), F("credit"), F(""), F("please wait..."), 0); 
         int credit = loadCard(RFIDcard);
 
-//        if(buttonPress == true) { // button pressed on coffeemaker?
            if (credit > 0) {
-//            coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
-//            delay(20);
-//            coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
-//            delay(20);
-//            coffeemaker->toCoffeemaker("?ok\r\n"); // prepare coffee
-//            delay(20);
-            oled->message_print(F("Credit"), F("remaining"), String(credit) + " Coffees", F("choose product"), 0);
-//            messageBroker->sendmessage (logger.print10digits(RFIDcard), productname, (float)price / 100.0);   
-//            buttonPress= false;
-//            price= 0;
-//            delay(500);
-//            oled->message_print_scroll(chucknorris.getNextChucknorrisFact());
-          } else {
+              oled->message_print(F("Credit"), F("remaining"), String(credit) + " Coffees", "", 2000);
+              coffeeSelectionRunning = true;
+              coffeeSelectionStartTime = millis();
+          } 
+          else if (credit == 0){
             buzzer->beep(2);
             oled->message_print(F("Not enough"), F("credit"), 2000); 
           }
-//        } 
-//        else { // if no button was pressed on coffeemaker / check credit
-//          oled->message_print(logger.printCredit(credit), F("Remaining credit"), 2000);
-//        }
-//        i = MAX_CARDS; // leave loop (after card has been identified)
-//      }      
-//    }
-//    if (k == MAX_CARDS){ 
-//      k=0; 
-//      buzzer->beep(2);
-//      oled->message_print(String(logger.print12digits(RFIDcard)),F("card unknown!"),2000);
-//    }           
-  }
+          else if (credit == -1) {
+            buzzer->beep(2);
+            oled->message_print(F("Unknown card"), logger.print12digits(RFIDcard), 2000);
+          }
+          else if (credit < -1) {
+            buzzer->beep(2);
+            oled->message_print(F("Unknown error"), F(""), 2000);
+          }      
+    }
   }
 }
 
@@ -284,14 +276,22 @@ int loadCard(long card) {
       JsonObject& json = jsonBuffer.parseObject(payload);
       signed int credit =  json["credit"];
       Serial.println("Credit " + String(credit));
-     return credit;
-      } else {
-        Serial.printf("[HTTP] GET... failed, code: %s", httpCode);
-        return 0;
-      }
-    
-  } else {
-    Serial.printf("[HTTP] GET... failed, error: %s", http.errorToString(httpCode).c_str());
+      return credit;
+    } 
+    else if (httpCode == HTTP_CODE_NOT_FOUND) {
+      http.end();
+      Serial.println("Unknown card: " + logger.print12digits(card));
+      return -1;
+    }
+    else {
+      http.end();
+      Serial.println("Unexpected HTTPCode: " + String(httpCode));
+      return -2;
+    }
+  } 
+  else {
+    http.end();
+    Serial.println("Unknown Error: " + String(httpCode));
     return 0;
   }
 }
