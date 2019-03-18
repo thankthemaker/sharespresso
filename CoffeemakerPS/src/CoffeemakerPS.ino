@@ -53,6 +53,7 @@ char trivialfix;
 std::map <char, String> products;
 
 // general variables (used in loop)
+boolean buttonPressed = false;
 boolean coffeeSelected = false;
 boolean registeringStarted = false;
 
@@ -61,7 +62,6 @@ unsigned long coffeeSelectionStartTime = 0;
 
 String BTstring=""; // contains what is received via bluetooth (from app or other bt client)
 unsigned long actTime; // timer for RFID etc
-unsigned long buttonTime; // timer for button press 
 unsigned long tempInkassoOffTime; // timer for temporary inkasso mode press 
 unsigned long lastAlive; // time of the last Alive signal send
 unsigned long aliveCounter = 0;
@@ -161,26 +161,29 @@ void setup() {
 }
 
 void loop() {  
-    wifi.loop();
-    messageBroker->loop();
-    if(millis() - lastAlive > 15000) {
-      lastAlive = millis();
-      ++aliveCounter;
-      messageBroker->publish("coffeemaker is alive, count " + String(aliveCounter) + ", free Heap: " + ESP.getFreeHeap());
-    }
+  wifi.loop();
+  messageBroker->loop();
+  if(millis() - lastAlive > 15000) {
+    lastAlive = millis();
+    ++aliveCounter;
+    messageBroker->publish("coffeemaker is alive, count " + String(aliveCounter) + ", free Heap: " + ESP.getFreeHeap());
+  }
 
   // alwaya get key pressed on coffeemaker
   String message = "";
+  buttonPressed = false;
   message = coffeemaker->fromCoffeemaker();   // gets answers from coffeemaker 
-
+  if (message.length() > 0 && message != ""){
+    buttonPressed = true;
+  }
+  
   // but only handle button press if coffeeselection is running
   if (coffeeSelectionRunning && !coffeeSelected) {
     if (millis() - coffeeSelectionStartTime <= 10000) {
-      if (message.length() > 0 && message != ""){
+      if(buttonPressed){
         logger.log("msg=" + message);
         if (message.charAt(0) == '?' && message.charAt(1) == 'P'){     // message starts with '?P' ?
           coffeeSelected = true;
-          buttonTime = millis();
 
           //std::map<char,String>::iterator it = coffeemaker->getProducts().find(message.charAt(3));
           std::map<char,String>::iterator it = products.find(message.charAt(3));
@@ -207,6 +210,9 @@ void loop() {
       coffeeSelectionRunning = false;
       oled->message_clear();
     }
+  } else if(buttonPressed) {
+    buzzer->beep(1);
+    oled->message_print(F("Please scan"), F("card first"), 2000);
   }
 
   if (coffeeSelected == true){
