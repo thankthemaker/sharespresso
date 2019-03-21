@@ -67,6 +67,21 @@ void AwsIotClient::sendmessage(const String cardId, const String product, const 
         this->publish_to_topic(TOPIC_COFFEE, buffer.get());
 }
 
+//send a message to a mqtt topic
+void AwsIotClient::sendmessage(const String cardId, const int credit){ 
+        StaticJsonBuffer<maxMQTTpackageSize> jsonBuffer;
+        JsonObject& root = jsonBuffer.createObject();
+        root["userId"] = "123";
+        root["cardId"] = cardId;
+        root["credit"] = credit;
+        root["preregistred"] = true;
+
+        std::unique_ptr<char []> buffer(new char[maxMQTTpackageSize]());
+        root.printTo(buffer.get(), maxMQTTpackageSize);
+
+        this->publish_to_topic(TOPIC_CARD, buffer.get());
+}
+
 void AwsIotClient::publish_to_topic(const char* topic, const String& message) {
   char payload[512];
   sprintf(payload, message.c_str());

@@ -61,3 +61,6 @@ void MqttService::sendmessage(const String cardId, const String product, const f
   this->publish(cardId + ";" + product + ";" + price);  
 }
 
+void MqttService::sendmessage(const String cardId, const int credit) {
+  this->publish(cardId + ";" + credit);  
+}

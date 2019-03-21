@@ -20,6 +20,7 @@ class MqttService : public IMessageBroker {
         void reconnect();
         void publish(String message);
         void sendmessage(const String cardId, const String product, const float price); 
+        void sendmessage(const String cardId, const int credit);
 };
 #endif
 

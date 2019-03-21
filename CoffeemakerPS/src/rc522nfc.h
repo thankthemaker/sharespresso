@@ -9,7 +9,7 @@ class Rc522NfcReader : public INfcReader{
     private:
         MFRC522 nfc;
         IDisplay *oled;
-        Buzzer* buzzer;
+        Buzzer *buzzer;
         IMessageBroker* messageBroker;
         CoffeeLogger logger;
 

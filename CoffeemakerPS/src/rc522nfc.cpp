@@ -3,6 +3,7 @@
 Rc522NfcReader::Rc522NfcReader(IMessageBroker *messageBroker, IDisplay *oled, Buzzer *buzzer) : nfc(RC522_SS, RC522_RST){
   this->oled = oled;
   this->buzzer = buzzer;
+  this->messageBroker = messageBroker;
 };
 
 void Rc522NfcReader::initNfcReader() {
@@ -26,6 +27,7 @@ void Rc522NfcReader::registernewcards() {
       }
     } while ( (millis()-actTime) < 60 );  
     if (RFIDcard != 0) {
+      this->messageBroker->sendmessage(logger.print12digits(RFIDcard), 3);
       this->oled->message_print( logger.print12digits(RFIDcard), F("registered"),0);
       this->buzzer->beep(1);
       actTime = millis();

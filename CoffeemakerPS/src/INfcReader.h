@@ -6,6 +6,7 @@
 #include "eepromconfig.h";
 #include "IDisplay.h"
 #include "buzzer.h";
+#include "IMessageBroker.h"
 
 #define MASTERCARD 3496110302 // card uid to enter/exit service mode
 
@@ -13,6 +14,7 @@ class INfcReader {
     private:
         IDisplay* oled;
         Buzzer* buzzer;
+        IMessageBroker* messageBroker;
         CoffeeLogger logger;
 
     public:    
