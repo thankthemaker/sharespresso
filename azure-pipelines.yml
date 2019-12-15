@@ -46,5 +46,5 @@ steps:
 - script: |
     echo build project
     echo PLATFORMIO_CI_SRC: $(PLATFORMIO_CI_SRC)
-    platformio ci --project-conf=CoffeemakerPS/platformio.ini
+    platformio ci --project-conf=CoffeemakerPS/platformio.ini --lib="."
   displayName: 'build platform.io project'
