@@ -26,5 +26,5 @@ steps:
 - script: |
     echo build project
     echo PLATFORMIO_CI_SRC: $(PLATFORMIO_CI_SRC)
-    platformio ci --project-conf=CoffeemakerPS/platformio.ini --lib="." --lib="CoffeemakerPS/lib/AWS_IOT" --lib="CoffeemakerPS/lib/aws-mqtt-websockets" --lib="CoffeemakerPS/lib/aws-sdk-arduino-esp8266" --lib="CoffeemakerPS/lib/PubSubClient" --lib="CoffeemakerPS/lib/Syslog"
+    platformio ci --project-conf=CoffeemakerPS/platformio.ini --lib="." --lib="CoffeemakerPS/lib/AWS_IOT" --lib="CoffeemakerPS/lib/aws-mqtt-websockets" --lib="CoffeemakerPS/lib/aws-sdk-arduino-esp8266" --lib="CoffeemakerPS/lib/PubSubClient" --lib="CoffeemakerPS/lib/PubSubClient/tests/src/lib" --lib="CoffeemakerPS/lib/Syslog"
   displayName: 'build platform.io project'
