@@ -26,5 +26,5 @@ steps:
 - script: |
     echo build project
     echo PLATFORMIO_CI_SRC: $(PLATFORMIO_CI_SRC)
-    platformio ci --board=esp32thing
+    platformio ci --lib="." --board=esp32thing
   displayName: 'build platform.io project'
