@@ -10,7 +10,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-    PLATFORMIO_CI_SRC: CoffeemakerPS/src
+    PLATFORMIO_CI_SRC: CoffeemakerPS
 
 steps:
 - task: UsePythonVersion@0
@@ -26,5 +26,5 @@ steps:
 - script: |
     echo build project
     echo PLATFORMIO_CI_SRC: $(PLATFORMIO_CI_SRC)
-    platformio ci --project-conf=CoffeemakerPS/platformio.ini --lib="." --lib="AWS_IOT" --lib="aws-mqtt-websockets" --lib="aws-sdk-arduino-esp8266" --lib="PubSubClient" --lib="Syslog"
+    platformio ci --project-conf=CoffeemakerPS/platformio.ini --lib="." --lib="lib/AWS_IOT" --lib="lib/aws-mqtt-websockets" --lib="lib/aws-sdk-arduino-esp8266" --lib="lib/PubSubClient" --lib="lib/Syslog"
   displayName: 'build platform.io project'
