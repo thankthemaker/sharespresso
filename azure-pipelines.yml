@@ -25,20 +25,20 @@ steps:
 
 - script: |
     echo installing platform.io libraries 
-    platformio lib install "Adafruit GFX Library" "Adafruit PN532"
-    platformio lib install "Adafruit ST7735 and ST7789 Library"
-    platformio lib install "ArduinoJson-esphomelib"
-    platformio lib install "Brzo I2C"
-    platformio lib install "ESP32httpUpdate"
-    platformio lib install "ESP8266 and ESP32 OLED driver for SSD1306 displays"
-    platformio lib install "IFTTTWebhook"
-    platformio lib install "MFRC522"
-    platformio lib install "Paho"
-    platformio lib install "Time"
-    platformio lib install "U8g2"
-    platformio lib install "Ucglib"
-    platformio lib install "WebSockets"
-    platformio lib install "mbedtls"
+    platformio lib -g install "Adafruit GFX Library" "Adafruit PN532"
+    platformio lib -g install "Adafruit ST7735 and ST7789 Library"
+    platformio lib -g install "ArduinoJson-esphomelib"
+    platformio lib -g install "Brzo I2C"
+    platformio lib -g install "ESP32httpUpdate"
+    platformio lib -g install "ESP8266 and ESP32 OLED driver for SSD1306 displays"
+    platformio lib -g install "IFTTTWebhook"
+    platformio lib -g install "MFRC522"
+    platformio lib -g install "Paho"
+    platformio lib -g install "Time"
+    platformio lib -g install "U8g2"
+    platformio lib -g install "Ucglib"
+    platformio lib -g install "WebSockets"
+    platformio lib -g install "mbedtls"
   displayName: 'Install platform.io libraries'
 
 - script: |
