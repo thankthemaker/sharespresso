@@ -9,8 +9,10 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
-steps:
+variables:
+    PLATFORMIO_CI_SRC: /CoffeemakerPS/src
 
+steps:
 - task: UsePythonVersion@0
   inputs:
     versionSpec: '2.7'
@@ -18,4 +20,11 @@ steps:
 - script: |
     echo installing platform.io
     python -m pip install --upgrade pip setuptools wheel platformio
+    platformio update
   displayName: 'Install platform.io'
+
+- script: |
+    echo build project
+    echo PLATFORMIO_CI_SRC: $(PLATFORMIO_CI_SRC)
+    platformio ci --board=esp32thing
+  displayName: 'build platform.io project'
