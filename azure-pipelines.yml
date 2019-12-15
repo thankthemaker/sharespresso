@@ -17,5 +17,5 @@ steps:
 
 - script: |
     echo installing platform.io
-    - script: python -m pip install --upgrade pip setuptools wheel platformio
+    python -m pip install --upgrade pip setuptools wheel platformio
   displayName: 'Install platform.io'
