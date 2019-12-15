@@ -10,7 +10,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-    PLATFORMIO_CI_SRC: /CoffeemakerPS/src
+    PLATFORMIO_CI_SRC: CoffeemakerPS/src
 
 steps:
 - task: UsePythonVersion@0
