@@ -38,7 +38,7 @@ char trivialfix;
 #include "settings.h"
 #include "eepromconfig.h"
 #include "wifi.h"
-#include "NtpClient.h"
+#include "ntpClient.h"
 #include "IDisplay.h"
 #include "INfcReader.h"
 #include "ICoffeeMaker.h"

@@ -30,7 +30,7 @@
 
 #include "settings.h"
 #include "IMessageBroker.h"
-#include "NtpClient.h"
+#include "ntpClient.h"
 
 const int maxMQTTpackageSize = 512;
 const int maxMQTTMessageHandlers = 2;
