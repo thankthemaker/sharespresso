@@ -23,28 +23,10 @@ steps:
     platformio update
   displayName: 'Install platform.io'
 
-#- script: |
-#    echo installing platform.io libraries 
-#    platformio lib -g install \ 
-#      "Adafruit GFX Library" \ 
-#      "Adafruit PN532" \
-#      "Adafruit ST7735 and ST7789 Library" \
-#      "ArduinoJson-esphomelib" \
-#      "Brzo I2C" \ 
-#      "ESP32httpUpdate" \
-#      "ESP8266 and ESP32 OLED driver for SSD1306 displays" \
-#      "IFTTTWebhook" \
-#      "MFRC522" \
-#      "Paho" \
-#      "Time" \
-#      "U8g2" \
-#      "Ucglib" \
-#      "WebSockets" \
-#      "mbedtls"
-#  displayName: 'Install platform.io libraries'
-
 - script: |
     echo build project
     echo PLATFORMIO_CI_SRC: $(PLATFORMIO_CI_SRC)
-    platformio ci --project-conf=CoffeemakerPS/platformio.ini --lib="."
+    echo DIR: `pwd`
+    echo LS: `ls -l`
+    platformio run --project-conf=$(PLATFORMIO_CI_SRC)/platformio.ini --project-dir=$(PLATFORMIO_CI_SRC)
   displayName: 'build platform.io project'
