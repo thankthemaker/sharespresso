@@ -26,5 +26,7 @@ steps:
 - script: |
     echo build project
     echo PLATFORMIO_CI_SRC: $(PLATFORMIO_CI_SRC)
+    echo DIR: `pwd`
+    echo LS: `ls -l`
     platformio run --project-conf=CoffeemakerPS/platformio.ini
   displayName: 'build platform.io project'
