@@ -150,10 +150,10 @@ Adafruit_PN532::Adafruit_PN532(uint8_t clk, uint8_t miso, uint8_t mosi, uint8_t 
 */
 /**************************************************************************/
 Adafruit_PN532::Adafruit_PN532(uint8_t irq, uint8_t reset):
-  _ss(ss),
-  _clk(clk),
-  _mosi(mosi),
-  _miso(miso),
+  _ss(0),
+  _clk(0),
+  _mosi(0),
+  _miso(0),
   _irq(irq),
   _reset(reset),
   _usingSPI(false),
@@ -172,9 +172,9 @@ Adafruit_PN532::Adafruit_PN532(uint8_t irq, uint8_t reset):
 /**************************************************************************/
 Adafruit_PN532::Adafruit_PN532(uint8_t ss):
   _ss(ss),
-  _clk(clk),
-  _mosi(mosi),
-  _miso(miso),
+  _clk(0),
+  _mosi(0),
+  _miso(0),
   _irq(0),
   _reset(0),
   _usingSPI(true),
